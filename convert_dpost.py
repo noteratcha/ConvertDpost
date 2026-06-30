@@ -4,7 +4,7 @@ import glob
 import pandas as pd
 from pypdf import PdfReader
 
-__version__ = "2026.0630.1707"
+__version__ = "2026.0630.1717"
 
 # Mapping of Thai digits to Arabic digits
 THAI_TO_ARABIC = str.maketrans('๐๑๒๓๔๕๖๗๘๙', '0123456789')
@@ -400,10 +400,10 @@ def records_to_dataframe(all_records):
         row_data['RECEIVER_TEL'] = ""
         row_data['RECEIVER_EMAIL'] = ""
         
-        row_data['WEIGHT'] = ""
-        row_data['PRICE'] = ""
-        row_data['INSURE'] = ""
-        row_data['INSURE_PRICE'] = ""
+        row_data['WEIGHT'] = "10"
+        row_data['PRICE'] = "0"
+        row_data['INSURE'] = "N"
+        row_data['INSURE_PRICE'] = "0"
         row_data['COD_DETAIL_NAME'] = ""
         row_data['COD_DETAIL_SIZE'] = ""
         row_data['COD_DETAIL_VOLUME'] = ""
