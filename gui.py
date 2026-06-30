@@ -12,7 +12,7 @@ import pandas as pd
 try:
     from convert_dpost import process_pdf, records_to_dataframe, __version__
 except ImportError:
-    __version__ = "2026.0630.1657"
+    __version__ = "2026.0630.1700"
     def process_pdf(path): return []
     def records_to_dataframe(records): return pd.DataFrame()
 
@@ -539,8 +539,13 @@ class DPostConverterGUI(ctk.CTk):
         suffix = datetime.now().strftime("%Y%m%d%H%M")
         default_name = f"dpost_import_{suffix}.xlsx"
         
+        downloads_dir = os.path.join(os.path.expanduser("~"), "Downloads")
+        if not os.path.exists(downloads_dir):
+            downloads_dir = os.path.expanduser("~")
+            
         output_path = filedialog.asksaveasfilename(
             title="บันทึกไฟล์ Excel สำหรับ DPost",
+            initialdir=downloads_dir,
             initialfile=default_name,
             filetypes=[("Excel files", "*.xlsx")],
             defaultextension=".xlsx"
