@@ -4,7 +4,7 @@ import glob
 import pandas as pd
 from pypdf import PdfReader
 
-__version__ = "2026.0630.1622"
+__version__ = "2026.0630.1629"
 
 # Mapping of Thai digits to Arabic digits
 THAI_TO_ARABIC = str.maketrans('๐๑๒๓๔๕๖๗๘๙', '0123456789')
@@ -361,8 +361,14 @@ def records_to_dataframe(all_records):
     for idx, rec in enumerate(all_records, 1):
         row_data = {col: "" for col in columns}
         row_data['NO'] = idx
-        row_data['COMP_ORDER_ID'] = ""
-        row_data['INV_NO'] = rec.get('REF NO', '')
+        inv_no = rec.get('REF NO', '')
+        row_data['INV_NO'] = inv_no
+        
+        # Extract the part after "/" for COMP_ORDER_ID
+        comp_order_id = ""
+        if "/" in inv_no:
+            comp_order_id = inv_no.split("/")[-1].strip()
+        row_data['COMP_ORDER_ID'] = comp_order_id
         row_data['BARCODE_NO'] = ""
         row_data['PRODUCT_IN_BOX'] = ""
         
