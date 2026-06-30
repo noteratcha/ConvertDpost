@@ -12,7 +12,7 @@ import pandas as pd
 try:
     from convert_dpost import process_pdf, records_to_dataframe, __version__
 except ImportError:
-    __version__ = "2026.0630.1629"
+    __version__ = "2026.0630.1632"
     def process_pdf(path): return []
     def records_to_dataframe(records): return pd.DataFrame()
 
@@ -83,6 +83,19 @@ class DPostConverterGUI:
         
         # Redirect stdout
         sys.stdout = StdoutRedirector(self.log_text)
+        
+        # Set initial active step
+        self.set_current_step(1)
+
+    def set_current_step(self, step):
+        """Highlights the active step label and dims inactive steps."""
+        for s_num, lbl in {1: self.lbl_step1, 2: self.lbl_step2, 3: self.lbl_step3}.items():
+            if s_num == step:
+                # Active style: Light blue capsule background, dark blue text
+                lbl.config(fg="#0369a1", bg="#e0f2fe")
+            else:
+                # Inactive style: Muted gray text, transparent/blend background
+                lbl.config(fg="#94a3b8", bg="#f8fafc")
 
     def setup_styles(self):
         style = ttk.Style()
@@ -129,12 +142,27 @@ class DPostConverterGUI:
         instruction_bar = tk.Frame(self.root, bg="#f8fafc", highlightthickness=1, highlightbackground="#cbd5e1")
         instruction_bar.pack(fill='x', padx=15, pady=(15, 0))
         
-        instruction_lbl = tk.Label(
-            instruction_bar, 
-            text="💡 ขั้นตอนการทำงาน:  [1] กด 'เลือกไฟล์ PDF...' (หรือเลือกโฟลเดอร์)  ➔  [2] กด 'เริ่มแปลงข้อมูล' (ขวาบน)  ➔  [3] กด 'บันทึกไฟล์ Excel...' (ขวาล่าง)", 
-            font=("Segoe UI", 10, "bold"), fg="#0f766e", bg="#f8fafc"
-        )
-        instruction_lbl.pack(fill='x', padx=10, pady=8)
+        # Center container frame to keep steps aligned horizontally
+        center_frame = tk.Frame(instruction_bar, bg="#f8fafc")
+        center_frame.pack(anchor='center', pady=6)
+        
+        icon_lbl = tk.Label(center_frame, text="💡 ขั้นตอนการทำงาน:", font=("Segoe UI", 10, "bold"), fg="#0f766e", bg="#f8fafc")
+        icon_lbl.pack(side='left', padx=(0, 10))
+        
+        self.lbl_step1 = tk.Label(center_frame, text=" [1] เลือกไฟล์ PDF (หรือเลือกโฟลเดอร์) ", font=("Segoe UI", 10, "bold"), bg="#f8fafc", padx=6, pady=2)
+        self.lbl_step1.pack(side='left')
+        
+        arrow1 = tk.Label(center_frame, text=" ➔ ", font=("Segoe UI", 10), fg="#94a3b8", bg="#f8fafc")
+        arrow1.pack(side='left')
+        
+        self.lbl_step2 = tk.Label(center_frame, text=" [2] เริ่มแปลงข้อมูล (ขวาบน) ", font=("Segoe UI", 10, "bold"), bg="#f8fafc", padx=6, pady=2)
+        self.lbl_step2.pack(side='left')
+        
+        arrow2 = tk.Label(center_frame, text=" ➔ ", font=("Segoe UI", 10), fg="#94a3b8", bg="#f8fafc")
+        arrow2.pack(side='left')
+        
+        self.lbl_step3 = tk.Label(center_frame, text=" [3] บันทึกไฟล์ Excel... (ขวาล่าง) ", font=("Segoe UI", 10, "bold"), bg="#f8fafc", padx=6, pady=2)
+        self.lbl_step3.pack(side='left')
 
         # Main Scrollable Container
         container = tk.Frame(self.root, bg=COLOR_BG)
@@ -286,6 +314,9 @@ class DPostConverterGUI:
         self.progress['value'] = 0
         self.btn_export.config(state='disabled')
         self.lbl_export_status.config(text="พร้อมเริ่มแปลงข้อมูล", fg=COLOR_TEXT_MUTED)
+        
+        # Transition to step 2 (ready to convert)
+        self.set_current_step(2)
 
     def clear_selection(self):
         self.selected_files = []
@@ -305,6 +336,9 @@ class DPostConverterGUI:
         self.log_text.configure(state='normal')
         self.log_text.delete('1.0', tk.END)
         self.log_text.configure(state='disabled')
+        
+        # Reset to step 1
+        self.set_current_step(1)
 
     def start_conversion(self):
         # Disable buttons during work
@@ -376,6 +410,9 @@ class DPostConverterGUI:
         self.btn_export.config(state='normal')
         self.lbl_export_status.config(text=f"แปลงข้อมูลสำเร็จ ค้นพบทั้งหมด {len(self.dataframe)} รายการ พร้อมนำออกไฟล์", fg=COLOR_SECONDARY)
         messagebox.showinfo("เสร็จสิ้น", f"แปลงข้อมูลสำเร็จทั้งหมด {len(self.dataframe)} รายการ")
+        
+        # Transition to step 3 (ready to export)
+        self.set_current_step(3)
 
     def conversion_failed(self, error_msg):
         self.btn_select_files.config(state='normal')
