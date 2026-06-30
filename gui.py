@@ -12,7 +12,7 @@ import pandas as pd
 try:
     from convert_dpost import process_pdf, records_to_dataframe, __version__
 except ImportError:
-    __version__ = "2026.0630.1724"
+    __version__ = "2026.0630.1734"
     def process_pdf(path): return []
     def records_to_dataframe(records): return pd.DataFrame()
 
@@ -61,6 +61,7 @@ class DPostConverterGUI(ctk.CTk):
         self.selected_files = []
         self.parsed_records = []
         self.dataframe = None
+        self._append_mode = False  # Flag for append vs replace conversion
 
         # Build UI layout
         self.create_layout()
@@ -151,6 +152,10 @@ class DPostConverterGUI(ctk.CTk):
         self.btn_select_dir = ctk.CTkButton(btn_frame, text=" 📁 เลือกโฟลเดอร์... ", fg_color="#0284c7", hover_color="#0369a1",
                                             font=("Segoe UI", 11, "bold"), command=self.select_directory, width=170)
         self.btn_select_dir.pack(side='left', padx=(0, 10))
+        
+        self.btn_append_files = ctk.CTkButton(btn_frame, text=" ➕ เพิ่มไฟล์ PDF... ", fg_color="#7c3aed", hover_color="#6d28d9",
+                                              font=("Segoe UI", 11, "bold"), command=self.append_files, width=170, state='disabled')
+        self.btn_append_files.pack(side='left', padx=(0, 10))
         
         self.btn_clear = ctk.CTkButton(btn_frame, text=" 🧹 ล้างข้อมูล ", fg_color="#475569", hover_color="#334155",
                                        font=("Segoe UI", 11, "bold"), command=self.clear_selection, width=110)
@@ -403,6 +408,31 @@ class DPostConverterGUI(ctk.CTk):
             else:
                 messagebox.showwarning("ไม่พบไฟล์", "ไม่พบไฟล์ PDF ในโฟลเดอร์ที่เลือก")
 
+    def append_files(self):
+        """Opens additional PDF files and appends them to existing data with duplicate checking."""
+        files = filedialog.askopenfilenames(
+            title="เพิ่มไฟล์ PDF ใบนำส่ง DPost (Append Mode)",
+            filetypes=[("PDF files", "*.pdf"), ("All files", "*.*")]
+        )
+        if files:
+            # Merge new files into selected_files (avoid exact path duplicates)
+            existing = set(self.selected_files)
+            new_files = [f for f in files if f not in existing]
+            if not new_files:
+                messagebox.showinfo("ไม่มีไฟล์ใหม่", "ไฟล์ที่เลือกทั้งหมดถูกโหลดแล้ว")
+                return
+            self.selected_files.extend(new_files)
+            count = len(self.selected_files)
+            self.lbl_status.configure(
+                text=f"โหมดเพิ่มข้อมูล: ไฟล์ทั้งหมด {count} ไฟล์ (เพิ่ม {len(new_files)} ไฟล์ใหม่)",
+                text_color=("#7c3aed", "#a78bfa")
+            )
+            self._append_mode = True
+            self.btn_convert.configure(state='normal')
+            self.progress.set(0)
+            self.update_stats()
+            self.set_current_step(2)
+
     def update_file_selection_status(self):
         count = len(self.selected_files)
         if count == 1:
@@ -411,6 +441,7 @@ class DPostConverterGUI(ctk.CTk):
         else:
             self.lbl_status.configure(text=f"เลือกไฟล์ทั้งหมด {count} ไฟล์", text_color=("#0284c7", "#38bdf8"))
         
+        self._append_mode = False
         self.btn_convert.configure(state='normal')
         self.progress.set(0)
         self.btn_export.configure(state='disabled')
@@ -426,8 +457,11 @@ class DPostConverterGUI(ctk.CTk):
         self.selected_files = []
         self.parsed_records = []
         self.dataframe = None
+        self._append_mode = False
+        self._prev_file_count = 0
         self.lbl_status.configure(text="ยังไม่ได้เลือกไฟล์", text_color="#94a3b8")
         self.btn_convert.configure(state='disabled')
+        self.btn_append_files.configure(state='disabled')
         self.btn_export.configure(state='disabled')
         self.lbl_export_status.configure(text="กรุณาแปลงข้อมูลก่อนบันทึก", text_color=("#475569", "#94a3b8"))
         self.progress.set(0)
@@ -454,14 +488,16 @@ class DPostConverterGUI(ctk.CTk):
         # Disable buttons during work
         self.btn_select_files.configure(state='disabled')
         self.btn_select_dir.configure(state='disabled')
+        self.btn_append_files.configure(state='disabled')
         self.btn_convert.configure(state='disabled')
         self.btn_clear.configure(state='disabled')
         
         self.progress.set(0)
         
-        # Clear preview table
-        for item in self.tree.get_children():
-            self.tree.delete(item)
+        if not self._append_mode:
+            # Replace mode: clear preview table
+            for item in self.tree.get_children():
+                self.tree.delete(item)
             
         # Run conversion in background thread
         thread = threading.Thread(target=self.run_conversion_task)
@@ -470,24 +506,102 @@ class DPostConverterGUI(ctk.CTk):
 
     def run_conversion_task(self):
         try:
-            print(f"=== เริ่มการแปลงข้อมูล ({datetime.now().strftime('%H:%M:%S')}) ===")
-            self.parsed_records = []
+            is_append = self._append_mode and self.dataframe is not None and not self.dataframe.empty
             
-            total_files = len(self.selected_files)
-            for index, file_path in enumerate(self.selected_files, 1):
-                records = process_pdf(file_path)
-                self.parsed_records.extend(records)
+            if is_append:
+                print(f"=== เพิ่มข้อมูล (Append Mode) ({datetime.now().strftime('%H:%M:%S')}) ===")
+                # Only process the newly added files (those beyond previously processed)
+                # We detect new files as files not in already parsed set by re-scanning selected_files
+                new_records = []
+                # Find files that were NOT part of previous conversion
+                # We store a set of already-processed file paths to know which are "new"
+                prev_file_count = getattr(self, '_prev_file_count', 0)
+                new_files_to_process = self.selected_files[prev_file_count:]
+                total_new = len(new_files_to_process)
                 
-                percent = float(index / total_files)
-                self.after(0, self.update_progress, percent)
+                for index, file_path in enumerate(new_files_to_process, 1):
+                    print(f"ประมวลผลไฟล์: {os.path.basename(file_path)}...")
+                    records = process_pdf(file_path)
+                    new_records.extend(records)
+                    percent = float(index / total_new)
+                    self.after(0, self.update_progress, percent)
+                    
+                print(f"สกัดข้อมูลใหม่เสร็จสิ้น ค้นพบข้อมูลผู้รับ {len(new_records)} รายการ")
                 
-            print(f"สกัดข้อมูลเสร็จสิ้น ค้นพบข้อมูลผู้รับทั้งหมด {len(self.parsed_records)} รายการ\n")
-            
-            if self.parsed_records:
-                self.dataframe = records_to_dataframe(self.parsed_records)
-                self.after(0, self.conversion_success)
+                if not new_records:
+                    self.after(0, self.conversion_failed, "ไม่พบข้อมูลใบนำส่งที่ถูกต้องในไฟล์ PDF ที่เพิ่มเข้ามา")
+                    return
+                
+                new_df = records_to_dataframe(new_records)
+                
+                # --- Duplicate Detection ---
+                existing_keys = set(
+                    zip(self.dataframe['RECEIVER'].astype(str).str.strip().str.lower(),
+                        self.dataframe['RECEIVER_ADDRESS'].astype(str).str.strip().str.lower())
+                )
+                
+                dup_rows = []
+                non_dup_rows = []
+                for _, row in new_df.iterrows():
+                    key = (str(row['RECEIVER']).strip().lower(),
+                           str(row['RECEIVER_ADDRESS']).strip().lower())
+                    if key in existing_keys:
+                        dup_rows.append(row)
+                    else:
+                        non_dup_rows.append(row)
+                
+                if dup_rows:
+                    dup_names = "\n".join([f"  • {r['RECEIVER']} — {r['RECEIVER_ADDRESS'][:40]}" for r in dup_rows[:10]])
+                    if len(dup_rows) > 10:
+                        dup_names += f"\n  ...และอีก {len(dup_rows)-10} รายการ"
+                    confirm = messagebox.askyesno(
+                        "⚠️ พบข้อมูลผู้รับซ้ำ",
+                        f"พบรายการผู้รับที่ซ้ำกับข้อมูลเดิม {len(dup_rows)} รายการ:\n\n{dup_names}\n\n"
+                        "ต้องการเพิ่มรายการที่ซ้ำเข้าไปด้วยหรือไม่?"
+                    )
+                    if confirm:
+                        rows_to_add = non_dup_rows + dup_rows
+                    else:
+                        rows_to_add = non_dup_rows
+                else:
+                    rows_to_add = non_dup_rows
+                
+                if not rows_to_add:
+                    self.after(0, self.conversion_failed, "ไม่มีรายการใหม่ที่จะเพิ่ม (ทั้งหมดซ้ำและผู้ใช้ไม่ยืนยัน)")
+                    return
+                
+                added_df = pd.DataFrame(rows_to_add)
+                combined = pd.concat([self.dataframe, added_df], ignore_index=True)
+                # Renumber NO column
+                combined['NO'] = range(1, len(combined) + 1)
+                self.dataframe = combined
+                self.parsed_records.extend(new_records)
+                self._prev_file_count = len(self.selected_files)
+                self._append_mode = False
+                self.after(0, self.conversion_success, len(rows_to_add))
+                
             else:
-                self.after(0, self.conversion_failed, "ไม่พบข้อมูลใบนำส่งที่ถูกต้องในไฟล์ PDF ที่เลือก")
+                # Replace mode
+                print(f"=== เริ่มการแปลงข้อมูล ({datetime.now().strftime('%H:%M:%S')}) ===")
+                self.parsed_records = []
+                
+                total_files = len(self.selected_files)
+                for index, file_path in enumerate(self.selected_files, 1):
+                    print(f"ประมวลผลไฟล์: {os.path.basename(file_path)}...")
+                    records = process_pdf(file_path)
+                    self.parsed_records.extend(records)
+                    
+                    percent = float(index / total_files)
+                    self.after(0, self.update_progress, percent)
+                    
+                print(f"สกัดข้อมูลเสร็จสิ้น ค้นพบข้อมูลผู้รับทั้งหมด {len(self.parsed_records)} รายการ\n")
+                
+                if self.parsed_records:
+                    self.dataframe = records_to_dataframe(self.parsed_records)
+                    self._prev_file_count = len(self.selected_files)
+                    self.after(0, self.conversion_success)
+                else:
+                    self.after(0, self.conversion_failed, "ไม่พบข้อมูลใบนำส่งที่ถูกต้องในไฟล์ PDF ที่เลือก")
                 
         except Exception as e:
             print(f"เกิดข้อผิดพลาด: {str(e)}\n")
@@ -496,10 +610,11 @@ class DPostConverterGUI(ctk.CTk):
     def update_progress(self, val):
         self.progress.set(val)
 
-    def conversion_success(self):
+    def conversion_success(self, append_info=None):
         # Re-enable buttons
         self.btn_select_files.configure(state='normal')
         self.btn_select_dir.configure(state='normal')
+        self.btn_append_files.configure(state='normal')
         self.btn_convert.configure(state='normal')
         self.btn_clear.configure(state='normal')
         
@@ -507,12 +622,25 @@ class DPostConverterGUI(ctk.CTk):
         self.filter_treeview()
             
         self.btn_export.configure(state='normal')
-        self.lbl_export_status.configure(text=f"แปลงข้อมูลสำเร็จ ค้นพบทั้งหมด {len(self.dataframe)} รายการ พร้อมนำออกไฟล์", text_color="#16a34a")
+        total = len(self.dataframe)
+        if append_info:
+            self.lbl_export_status.configure(
+                text=f"เพิ่มข้อมูลสำเร็จ รวมทั้งหมด {total} รายการ (เพิ่ม {append_info} รายการ)",
+                text_color="#a855f7"
+            )
+        else:
+            self.lbl_export_status.configure(
+                text=f"แปลงข้อมูลสำเร็จ ค้นพบทั้งหมด {total} รายการ พร้อมนำออกไฟล์",
+                text_color="#16a34a"
+            )
         
         # Update dynamic stats panel
         self.update_stats()
         
-        messagebox.showinfo("เสร็จสิ้น", f"แปลงข้อมูลสำเร็จทั้งหมด {len(self.dataframe)} รายการ")
+        if append_info:
+            messagebox.showinfo("เพิ่มข้อมูลสำเร็จ", f"เพิ่มข้อมูลสำเร็จ {append_info} รายการ\nรวมทั้งหมด {total} รายการ")
+        else:
+            messagebox.showinfo("เสร็จสิ้น", f"แปลงข้อมูลสำเร็จทั้งหมด {total} รายการ")
         
         # Transition to step 3 (ready to export)
         self.set_current_step(3)
@@ -520,6 +648,7 @@ class DPostConverterGUI(ctk.CTk):
     def conversion_failed(self, error_msg):
         self.btn_select_files.configure(state='normal')
         self.btn_select_dir.configure(state='normal')
+        self.btn_append_files.configure(state='normal')
         self.btn_convert.configure(state='normal')
         self.btn_clear.configure(state='normal')
         
