@@ -12,7 +12,7 @@ import pandas as pd
 try:
     from convert_dpost import process_pdf, records_to_dataframe, __version__
 except ImportError:
-    __version__ = "2026.0630.1644"
+    __version__ = "2026.0630.1648"
     def process_pdf(path): return []
     def records_to_dataframe(records): return pd.DataFrame()
 
@@ -56,8 +56,7 @@ class DPostConverterGUI(ctk.CTk):
         sys.stdout = StdoutRedirector(self.log_text)
 
     def create_layout(self):
-        # 1. Header Banner
-        header = ctk.CTkFrame(self, corner_radius=0, fg_color="#1e293b", height=85)
+        header = ctk.CTkFrame(self, corner_radius=0, fg_color="#1e293b", height=65)
         header.pack(fill='x', side='top')
         header.pack_propagate(False)
         
@@ -75,10 +74,6 @@ class DPostConverterGUI(ctk.CTk):
                                            command=self.toggle_theme)
         self.switch_theme.select() # Default to dark mode selected
         self.switch_theme.pack(anchor='e', side='right', padx=10)
-        
-        version_lbl = ctk.CTkLabel(header_content, text=f"เวอร์ชัน {__version__} | สำหรับสกัดข้อมูลใบนำส่งเพื่อนำเข้า DPost", 
-                                   font=("Segoe UI", 11), text_color="#94a3b8")
-        version_lbl.pack(anchor='w', side='top', pady=(4, 0))
 
         # 2. Sub-header Instruction Bar (Step-by-step guidance)
         instruction_bar = ctk.CTkFrame(self, corner_radius=8, border_width=1, border_color=("#cbd5e1", "#334155"))
