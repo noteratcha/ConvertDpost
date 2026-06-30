@@ -14,9 +14,3 @@ venv/
 .venv/
 env/
 .env/
-
-# Data / Project-specific outputs (Ignore PDFs and generated Excels)
-*.pdf
-*.xlsx
-*.xls
-*.log
