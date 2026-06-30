@@ -14,3 +14,8 @@ venv/
 .venv/
 env/
 .env/
+
+# Generated Excel outputs & lock files
+dpost_import_*.xlsx
+~$*.xlsx
+

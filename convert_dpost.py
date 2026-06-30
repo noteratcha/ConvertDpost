@@ -4,7 +4,7 @@ import glob
 import pandas as pd
 from pypdf import PdfReader
 
-__version__ = "2026.0630.1632"
+__version__ = "2026.0630.1636"
 
 # Mapping of Thai digits to Arabic digits
 THAI_TO_ARABIC = str.maketrans('๐๑๒๓๔๕๖๗๘๙', '0123456789')
@@ -244,6 +244,7 @@ def process_pdf(pdf_path):
     best_shipper_name = ""
     best_shipper_address = ""
     best_shipper_tel = ""
+    product_in_box = ""
     
     for page in reader.pages:
         text = page.extract_text() or ""
@@ -259,6 +260,12 @@ def process_pdf(pdf_path):
         tel = extract_tel(text)
         if len(tel) > len(best_shipper_tel):
             best_shipper_tel = tel
+            
+        # Extract form type (e.g. (ท.ด. ๓๘)) if not found yet
+        if not product_in_box:
+            form_match = re.search(r'(\(\s*ท\s*\.\s*ด\s*\.\s*[๐-๙0-9]+\s*\))', text)
+            if form_match:
+                product_in_box = form_match.group(1).strip()
             
     # 2. Post-process the shipper info based on the rules:
     # Rule 2: "ถ้าข้อมูลที่คอลัมน์ G (SHIPPER ADDRESS) ว่าง ให้ไปเอาข้อมูลวรรคสุดท้ายของ F (SHIPPER NAME) มาใส่ และลบข้อความนั้นออกจากคอลัมน์ F"
@@ -312,7 +319,8 @@ def process_pdf(pdf_path):
         'SHIPPER AMPHUR': shipper_amphur,
         'SHIPPER PROVINCE': shipper_province,
         'SHIPPER ZIPCODE': shipper_zipcode,
-        'SHIPPER TEL': best_shipper_tel
+        'SHIPPER TEL': best_shipper_tel,
+        'PRODUCT IN BOX': product_in_box
     }
     
     # 3. Process each page to associate receiver details with the best shipper info
@@ -370,7 +378,7 @@ def records_to_dataframe(all_records):
             comp_order_id = inv_no.split("/")[-1].strip()
         row_data['COMP_ORDER_ID'] = comp_order_id
         row_data['BARCODE_NO'] = ""
-        row_data['PRODUCT_IN_BOX'] = ""
+        row_data['PRODUCT_IN_BOX'] = rec.get('PRODUCT IN BOX', '')
         
         row_data['SHIPPER_NAME'] = rec.get('SHIPPER NAME', '')
         row_data['SHIPPER_ADDRESS'] = rec.get('SHIPPER ADDRESS', '')
