@@ -4,7 +4,7 @@ import glob
 import pandas as pd
 from pypdf import PdfReader
 
-__version__ = "2026.0630.1700"
+__version__ = "2026.0630.1707"
 
 # Mapping of Thai digits to Arabic digits
 THAI_TO_ARABIC = str.maketrans('๐๑๒๓๔๕๖๗๘๙', '0123456789')
@@ -261,11 +261,15 @@ def process_pdf(pdf_path):
         if len(tel) > len(best_shipper_tel):
             best_shipper_tel = tel
             
-        # Extract form type (e.g. (ท.ด. ๓๘)) if not found yet
+        # Extract form type (e.g. (ท.ด. ๓๘) -> ท.ด. 38) if not found yet
         if not product_in_box:
-            form_match = re.search(r'(\(\s*ท\s*\.\s*ด\s*\.\s*[๐-๙0-9]+\s*\))', text)
+            form_match = re.search(r'\(\s*(ท\s*\.\s*ด\s*\.\s*[๐-๙0-9]+)\s*\)', text)
             if form_match:
-                product_in_box = form_match.group(1).strip()
+                extracted = form_match.group(1).strip()
+                # Convert Thai numbers to Arabic
+                extracted = extracted.translate(THAI_TO_ARABIC)
+                # Clean up spaces
+                product_in_box = re.sub(r'\s+', ' ', extracted)
             
     # 2. Post-process the shipper info based on the rules:
     # Rule 2: "ถ้าข้อมูลที่คอลัมน์ G (SHIPPER ADDRESS) ว่าง ให้ไปเอาข้อมูลวรรคสุดท้ายของ F (SHIPPER NAME) มาใส่ และลบข้อความนั้นออกจากคอลัมน์ F"
