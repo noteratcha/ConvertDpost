@@ -12,7 +12,7 @@ import pandas as pd
 try:
     from convert_dpost import process_pdf, records_to_dataframe, __version__
 except ImportError:
-    __version__ = "2026.0630.1641"
+    __version__ = "2026.0630.1644"
     def process_pdf(path): return []
     def records_to_dataframe(records): return pd.DataFrame()
 
@@ -81,7 +81,7 @@ class DPostConverterGUI(ctk.CTk):
         version_lbl.pack(anchor='w', side='top', pady=(4, 0))
 
         # 2. Sub-header Instruction Bar (Step-by-step guidance)
-        instruction_bar = ctk.CTkFrame(self, corner_radius=8, border_width=1, border_color="#334155")
+        instruction_bar = ctk.CTkFrame(self, corner_radius=8, border_width=1, border_color=("#cbd5e1", "#334155"))
         instruction_bar.pack(fill='x', padx=20, pady=(15, 0))
         
         center_frame = ctk.CTkFrame(instruction_bar, fg_color="transparent")
@@ -90,19 +90,19 @@ class DPostConverterGUI(ctk.CTk):
         icon_lbl = ctk.CTkLabel(center_frame, text="💡 ขั้นตอนการทำงาน:", font=("Segoe UI", 11, "bold"), text_color="#38bdf8")
         icon_lbl.pack(side='left', padx=(0, 10))
         
-        self.lbl_step1 = ctk.CTkLabel(center_frame, text=" [1] เลือกไฟล์ PDF (หรือโฟลเดอร์) ", font=("Segoe UI", 11, "bold"), text_color="#94a3b8", padx=8, pady=3)
+        self.lbl_step1 = ctk.CTkLabel(center_frame, text=" [1] เลือกไฟล์ PDF (หรือโฟลเดอร์) ", font=("Segoe UI", 11, "bold"), text_color=("#64748b", "#94a3b8"), padx=8, pady=3)
         self.lbl_step1.pack(side='left')
         
         arrow1 = ctk.CTkLabel(center_frame, text=" ➔ ", font=("Segoe UI", 11), text_color="#64748b")
         arrow1.pack(side='left')
         
-        self.lbl_step2 = ctk.CTkLabel(center_frame, text=" [2] เริ่มแปลงข้อมูล (ขวาบน) ", font=("Segoe UI", 11, "bold"), text_color="#94a3b8", padx=8, pady=3)
+        self.lbl_step2 = ctk.CTkLabel(center_frame, text=" [2] เริ่มแปลงข้อมูล (ขวาบน) ", font=("Segoe UI", 11, "bold"), text_color=("#64748b", "#94a3b8"), padx=8, pady=3)
         self.lbl_step2.pack(side='left')
         
         arrow2 = ctk.CTkLabel(center_frame, text=" ➔ ", font=("Segoe UI", 11), text_color="#64748b")
         arrow2.pack(side='left')
         
-        self.lbl_step3 = ctk.CTkLabel(center_frame, text=" [3] บันทึกไฟล์ Excel... (ขวาล่าง) ", font=("Segoe UI", 11, "bold"), text_color="#94a3b8", padx=8, pady=3)
+        self.lbl_step3 = ctk.CTkLabel(center_frame, text=" [3] บันทึกไฟล์ Excel... (ขวาล่าง) ", font=("Segoe UI", 11, "bold"), text_color=("#64748b", "#94a3b8"), padx=8, pady=3)
         self.lbl_step3.pack(side='left')
 
         # 3. Main Container
@@ -116,11 +116,11 @@ class DPostConverterGUI(ctk.CTk):
         container.rowconfigure(2, weight=2) # Log & Export Card
 
         # --- Card 1: File Selection & Controls ---
-        card_files = ctk.CTkFrame(container, corner_radius=10, border_width=1, border_color="#334155")
+        card_files = ctk.CTkFrame(container, corner_radius=10, border_width=1, border_color=("#cbd5e1", "#334155"))
         card_files.grid(row=0, column=0, sticky='nsew', pady=(0, 10))
         
         ctk.CTkLabel(card_files, text="1. เลือกแหล่งข้อมูลเอกสาร PDF", font=("Segoe UI", 12, "bold"), 
-                     text_color="#f8fafc").pack(anchor='w', padx=20, pady=(12, 5))
+                     text_color=("#0f172a", "#f8fafc")).pack(anchor='w', padx=20, pady=(12, 5))
         
         btn_frame = ctk.CTkFrame(card_files, fg_color="transparent")
         btn_frame.pack(fill='x', padx=20, pady=(5, 10))
@@ -137,7 +137,7 @@ class DPostConverterGUI(ctk.CTk):
                                        font=("Segoe UI", 11, "bold"), command=self.clear_selection, width=100)
         self.btn_clear.pack(side='left', padx=(0, 20))
         
-        self.lbl_status = ctk.CTkLabel(btn_frame, text="ยังไม่ได้เลือกไฟล์", font=("Segoe UI", 11, "italic"), text_color="#94a3b8")
+        self.lbl_status = ctk.CTkLabel(btn_frame, text="ยังไม่ได้เลือกไฟล์", font=("Segoe UI", 11, "italic"), text_color=("#475569", "#94a3b8"))
         self.lbl_status.pack(side='left', fill='x', expand=True, anchor='w')
         
         self.btn_convert = ctk.CTkButton(btn_frame, text=" [2] เริ่มแปลงข้อมูล ", fg_color="#0f766e", hover_color="#0d9488",
@@ -150,11 +150,11 @@ class DPostConverterGUI(ctk.CTk):
         self.progress.set(0)
 
         # --- Card 2: Preview Table ---
-        card_preview = ctk.CTkFrame(container, corner_radius=10, border_width=1, border_color="#334155")
+        card_preview = ctk.CTkFrame(container, corner_radius=10, border_width=1, border_color=("#cbd5e1", "#334155"))
         card_preview.grid(row=1, column=0, sticky='nsew', pady=(0, 10))
         
         ctk.CTkLabel(card_preview, text="2. ตารางตัวอย่างข้อมูลหลังสกัด (Preview)", font=("Segoe UI", 12, "bold"), 
-                     text_color="#f8fafc").pack(anchor='w', padx=20, pady=(12, 5))
+                     text_color=("#0f172a", "#f8fafc")).pack(anchor='w', padx=20, pady=(12, 5))
         
         table_frame = ctk.CTkFrame(card_preview, fg_color="transparent")
         table_frame.pack(fill='both', expand=True, padx=20, pady=(0, 15))
@@ -193,22 +193,22 @@ class DPostConverterGUI(ctk.CTk):
         card_footer.rowconfigure(0, weight=1)
         
         # Card 3a: Logs
-        log_frame = ctk.CTkFrame(card_footer, corner_radius=10, border_width=1, border_color="#334155")
+        log_frame = ctk.CTkFrame(card_footer, corner_radius=10, border_width=1, border_color=("#cbd5e1", "#334155"))
         log_frame.grid(row=0, column=0, sticky='nsew', padx=(0, 10))
         
         ctk.CTkLabel(log_frame, text="3. รายละเอียดการทำงาน (Log)", font=("Segoe UI", 12, "bold"), 
-                     text_color="#f8fafc").pack(anchor='w', padx=20, pady=(12, 5))
+                     text_color=("#0f172a", "#f8fafc")).pack(anchor='w', padx=20, pady=(12, 5))
         
-        self.log_text = ctk.CTkTextbox(log_frame, state='disabled', fg_color="#0f172a", text_color="#38bdf8", 
+        self.log_text = ctk.CTkTextbox(log_frame, state='disabled', fg_color=("#f1f5f9", "#0f172a"), text_color=("#0f172a", "#38bdf8"), 
                                        font=("Consolas", 11), corner_radius=6)
         self.log_text.pack(fill='both', expand=True, padx=20, pady=(0, 15))
         
         # Card 3b: Export panel
-        export_frame = ctk.CTkFrame(card_footer, corner_radius=10, border_width=1, border_color="#334155")
+        export_frame = ctk.CTkFrame(card_footer, corner_radius=10, border_width=1, border_color=("#cbd5e1", "#334155"))
         export_frame.grid(row=0, column=1, sticky='nsew')
         
         ctk.CTkLabel(export_frame, text="4. นำออกไฟล์ Excel", font=("Segoe UI", 12, "bold"), 
-                     text_color="#f8fafc").pack(anchor='w', padx=20, pady=(12, 5))
+                     text_color=("#0f172a", "#f8fafc")).pack(anchor='w', padx=20, pady=(12, 5))
         
         export_inner = ctk.CTkFrame(export_frame, fg_color="transparent")
         export_inner.pack(fill='both', expand=True, padx=20, pady=10)
@@ -218,7 +218,7 @@ class DPostConverterGUI(ctk.CTk):
         self.btn_export.pack(fill='x', pady=(15, 10))
         
         self.lbl_export_status = ctk.CTkLabel(export_inner, text="กรุณาแปลงข้อมูลก่อนบันทึก", 
-                                              font=("Segoe UI", 11, "italic"), text_color="#94a3b8")
+                                              font=("Segoe UI", 11, "italic"), text_color=("#475569", "#94a3b8"))
         self.lbl_export_status.pack(fill='x', side='bottom', pady=10)
 
     def style_treeview(self, mode):
@@ -261,7 +261,7 @@ class DPostConverterGUI(ctk.CTk):
                 lbl.configure(text_color="#0f172a", fg_color="#38bdf8", corner_radius=6)
             else:
                 # Inactive style: Muted gray text, transparent background
-                lbl.configure(text_color="#94a3b8", fg_color="transparent")
+                lbl.configure(text_color=("#64748b", "#94a3b8"), fg_color="transparent")
 
     def toggle_theme(self):
         """Toggles between Dark and Light appearance modes."""
@@ -299,14 +299,14 @@ class DPostConverterGUI(ctk.CTk):
         count = len(self.selected_files)
         if count == 1:
             name = os.path.basename(self.selected_files[0])
-            self.lbl_status.configure(text=f"เลือกไฟล์: {name}", text_color="#38bdf8")
+            self.lbl_status.configure(text=f"เลือกไฟล์: {name}", text_color=("#0284c7", "#38bdf8"))
         else:
-            self.lbl_status.configure(text=f"เลือกไฟล์ทั้งหมด {count} ไฟล์", text_color="#38bdf8")
+            self.lbl_status.configure(text=f"เลือกไฟล์ทั้งหมด {count} ไฟล์", text_color=("#0284c7", "#38bdf8"))
         
         self.btn_convert.configure(state='normal')
         self.progress.set(0)
         self.btn_export.configure(state='disabled')
-        self.lbl_export_status.configure(text="พร้อมเริ่มแปลงข้อมูล", text_color="#94a3b8")
+        self.lbl_export_status.configure(text="พร้อมเริ่มแปลงข้อมูล", text_color=("#475569", "#94a3b8"))
         
         # Transition to step 2 (ready to convert)
         self.set_current_step(2)
