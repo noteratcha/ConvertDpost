@@ -12,7 +12,7 @@ import pandas as pd
 try:
     from convert_dpost import process_pdf, records_to_dataframe, __version__
 except ImportError:
-    __version__ = "2026.0630.1604"
+    __version__ = "2026.0630.1622"
     def process_pdf(path): return []
     def records_to_dataframe(records): return pd.DataFrame()
 
@@ -408,8 +408,8 @@ class DPostConverterGUI:
                 # Save with sheet_name="New Order Data"
                 self.dataframe.to_excel(output_path, sheet_name="New Order Data", index=False)
                 print(f"บันทึกไฟล์ Excel สำเร็จ: {os.path.basename(output_path)}")
-                self.lbl_export_status.config(text=f"บันทึกไฟล์เรียบร้อยแล้วที่:\n{os.path.basename(output_path)}", fg=COLOR_SUCCESS)
                 messagebox.showinfo("บันทึกสำเร็จ", f"บันทึกไฟล์เรียบร้อยแล้วที่:\n{output_path}")
+                self.clear_selection()
             except Exception as e:
                 print(f"ไม่สามารถบันทึกไฟล์ได้: {str(e)}")
                 messagebox.showerror("เกิดข้อผิดพลาด", f"ไม่สามารถบันทึกไฟล์ได้:\n{str(e)}")
