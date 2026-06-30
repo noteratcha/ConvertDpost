@@ -12,7 +12,7 @@ import pandas as pd
 try:
     from convert_dpost import process_pdf, records_to_dataframe, __version__
 except ImportError:
-    __version__ = "2026.0630.1648"
+    __version__ = "2026.0630.1653"
     def process_pdf(path): return []
     def records_to_dataframe(records): return pd.DataFrame()
 
@@ -21,13 +21,29 @@ ctk.set_appearance_mode("dark")  # Modes: "System", "Dark", "Light"
 ctk.set_default_color_theme("blue")  # Themes: "blue", "green", "dark-blue"
 
 class StdoutRedirector:
-    """Redirects stdout to a customtkinter CTkTextbox widget."""
+    """Redirects stdout to a customtkinter CTkTextbox widget with pretty icon prefixing."""
     def __init__(self, text_widget):
         self.text_widget = text_widget
 
     def write(self, string):
+        if not string.strip():
+            return
+            
+        # Decorate logs dynamically for a premium developer feel
+        decorated = string
+        if "เริ่ม" in string:
+            decorated = f"🚀 {string}"
+        elif "เสร็จสิ้น" in string or "สำเร็จ" in string:
+            decorated = f"✅ {string}"
+        elif "เกิดข้อผิดพลาด" in string or "ล้มเหลว" in string:
+            decorated = f"❌ {string}"
+        elif "ประมวลผลไฟล์" in string:
+            decorated = f"📂 {string}"
+        else:
+            decorated = f"ℹ️ {string}"
+            
         self.text_widget.configure(state='normal')
-        self.text_widget.insert('end', string)
+        self.text_widget.insert('end', decorated + "\n")
         self.text_widget.see('end')
         self.text_widget.configure(state='disabled')
 
@@ -39,8 +55,8 @@ class DPostConverterGUI(ctk.CTk):
         super().__init__()
         
         self.title(f"DPost PDF Converter v{__version__}")
-        self.geometry("1100x760")
-        self.minsize(950, 700)
+        self.geometry("1100x780")
+        self.minsize(950, 720)
         
         self.selected_files = []
         self.parsed_records = []
@@ -54,8 +70,16 @@ class DPostConverterGUI(ctk.CTk):
         
         # Redirect stdout
         sys.stdout = StdoutRedirector(self.log_text)
+        
+        # Setup keyboard shortcuts for advanced UX
+        self.bind("<Control-o>", lambda e: self.select_files())
+        self.bind("<Control-O>", lambda e: self.select_files())
+        self.bind("<Control-s>", lambda e: self.export_excel_shortcut())
+        self.bind("<Control-S>", lambda e: self.export_excel_shortcut())
+        self.bind("<Escape>", self.on_escape_press)
 
     def create_layout(self):
+        # 1. Header Banner
         header = ctk.CTkFrame(self, corner_radius=0, fg_color="#1e293b", height=65)
         header.pack(fill='x', side='top')
         header.pack_propagate(False)
@@ -120,22 +144,22 @@ class DPostConverterGUI(ctk.CTk):
         btn_frame = ctk.CTkFrame(card_files, fg_color="transparent")
         btn_frame.pack(fill='x', padx=20, pady=(5, 10))
         
-        self.btn_select_files = ctk.CTkButton(btn_frame, text=" [1] เลือกไฟล์ PDF... ", fg_color="#0284c7", hover_color="#0369a1",
+        self.btn_select_files = ctk.CTkButton(btn_frame, text=" 📄 เลือกไฟล์ PDF... ", fg_color="#0284c7", hover_color="#0369a1",
                                               font=("Segoe UI", 11, "bold"), command=self.select_files, width=170)
         self.btn_select_files.pack(side='left', padx=(0, 10))
         
-        self.btn_select_dir = ctk.CTkButton(btn_frame, text=" [1] เลือกโฟลเดอร์... ", fg_color="#0284c7", hover_color="#0369a1",
+        self.btn_select_dir = ctk.CTkButton(btn_frame, text=" 📁 เลือกโฟลเดอร์... ", fg_color="#0284c7", hover_color="#0369a1",
                                             font=("Segoe UI", 11, "bold"), command=self.select_directory, width=170)
         self.btn_select_dir.pack(side='left', padx=(0, 10))
         
-        self.btn_clear = ctk.CTkButton(btn_frame, text="ล้างข้อมูล", fg_color="#475569", hover_color="#334155",
-                                       font=("Segoe UI", 11, "bold"), command=self.clear_selection, width=100)
+        self.btn_clear = ctk.CTkButton(btn_frame, text=" 🧹 ล้างข้อมูล ", fg_color="#475569", hover_color="#334155",
+                                       font=("Segoe UI", 11, "bold"), command=self.clear_selection, width=110)
         self.btn_clear.pack(side='left', padx=(0, 20))
         
         self.lbl_status = ctk.CTkLabel(btn_frame, text="ยังไม่ได้เลือกไฟล์", font=("Segoe UI", 11, "italic"), text_color=("#475569", "#94a3b8"))
         self.lbl_status.pack(side='left', fill='x', expand=True, anchor='w')
         
-        self.btn_convert = ctk.CTkButton(btn_frame, text=" [2] เริ่มแปลงข้อมูล ", fg_color="#0f766e", hover_color="#0d9488",
+        self.btn_convert = ctk.CTkButton(btn_frame, text=" ⚡ เริ่มแปลงข้อมูล ", fg_color="#0f766e", hover_color="#0d9488",
                                          font=("Segoe UI", 11, "bold"), command=self.start_conversion, state='disabled', width=170)
         self.btn_convert.pack(side='right')
 
@@ -148,9 +172,20 @@ class DPostConverterGUI(ctk.CTk):
         card_preview = ctk.CTkFrame(container, corner_radius=10, border_width=1, border_color=("#cbd5e1", "#334155"))
         card_preview.grid(row=1, column=0, sticky='nsew', pady=(0, 10))
         
-        ctk.CTkLabel(card_preview, text="2. ตารางตัวอย่างข้อมูลหลังสกัด (Preview)", font=("Segoe UI", 12, "bold"), 
-                     text_color=("#0f172a", "#f8fafc")).pack(anchor='w', padx=20, pady=(12, 5))
+        # Header frame with real-time search box
+        preview_header = ctk.CTkFrame(card_preview, fg_color="transparent")
+        preview_header.pack(fill='x', padx=20, pady=(10, 5))
         
+        title_lbl = ctk.CTkLabel(preview_header, text="2. ตารางตัวอย่างข้อมูลหลังสกัด (Preview)", font=("Segoe UI", 12, "bold"), 
+                                 text_color=("#0f172a", "#f8fafc"))
+        title_lbl.pack(side='left')
+        
+        self.search_entry = ctk.CTkEntry(preview_header, placeholder_text=" 🔍 ค้นหาผู้รับ / ผู้ส่ง / เลขอ้างอิง... ", 
+                                         width=300, height=28, font=("Segoe UI", 11))
+        self.search_entry.pack(side='right')
+        self.search_entry.bind("<KeyRelease>", self.filter_treeview)
+        self.search_entry.bind("<Escape>", self.clear_search)
+
         table_frame = ctk.CTkFrame(card_preview, fg_color="transparent")
         table_frame.pack(fill='both', expand=True, padx=20, pady=(0, 15))
         
@@ -208,13 +243,26 @@ class DPostConverterGUI(ctk.CTk):
         export_inner = ctk.CTkFrame(export_frame, fg_color="transparent")
         export_inner.pack(fill='both', expand=True, padx=20, pady=10)
         
-        self.btn_export = ctk.CTkButton(export_inner, text=" [3] บันทึกไฟล์ Excel... ", fg_color="#16a34a", hover_color="#15803d",
+        # Stats summary dashboard frame
+        self.stats_frame = ctk.CTkFrame(export_inner, fg_color=("#f1f5f9", "#1e293b"), corner_radius=6)
+        self.stats_frame.pack(fill='x', pady=(0, 10))
+        
+        self.lbl_stat_files = ctk.CTkLabel(self.stats_frame, text="📂 ไฟล์ PDF: 0 ไฟล์", font=("Segoe UI", 11, "bold"), text_color=("#475569", "#cbd5e1"))
+        self.lbl_stat_files.pack(anchor='w', padx=15, pady=(8, 3))
+        
+        self.lbl_stat_records = ctk.CTkLabel(self.stats_frame, text="👥 รายการผู้รับ: 0 รายการ", font=("Segoe UI", 11, "bold"), text_color=("#475569", "#cbd5e1"))
+        self.lbl_stat_records.pack(anchor='w', padx=15, pady=3)
+        
+        self.lbl_stat_prov = ctk.CTkLabel(self.stats_frame, text="📍 ส่งบ่อยสุด: -", font=("Segoe UI", 11, "bold"), text_color=("#475569", "#cbd5e1"))
+        self.lbl_stat_prov.pack(anchor='w', padx=15, pady=(3, 8))
+        
+        self.btn_export = ctk.CTkButton(export_inner, text=" 📥 บันทึกไฟล์ Excel... ", fg_color="#16a34a", hover_color="#15803d",
                                         font=("Segoe UI", 12, "bold"), command=self.export_excel, state='disabled', height=45)
-        self.btn_export.pack(fill='x', pady=(15, 10))
+        self.btn_export.pack(fill='x', pady=(5, 5))
         
         self.lbl_export_status = ctk.CTkLabel(export_inner, text="กรุณาแปลงข้อมูลก่อนบันทึก", 
                                               font=("Segoe UI", 11, "italic"), text_color=("#475569", "#94a3b8"))
-        self.lbl_export_status.pack(fill='x', side='bottom', pady=10)
+        self.lbl_export_status.pack(fill='x', side='bottom', pady=5)
 
     def style_treeview(self, mode):
         """Dynamic styling for the standard ttk.Treeview depending on the active theme."""
@@ -269,6 +317,71 @@ class DPostConverterGUI(ctk.CTk):
             self.style_treeview("light")
             self.switch_theme.configure(text="โหมดสว่าง (Light Mode)")
 
+    # --- UX Dynamic Helpers ---
+    
+    def update_stats(self):
+        """Updates the mini-dashboard stats panel."""
+        file_count = len(self.selected_files)
+        rec_count = len(self.parsed_records)
+        
+        top_prov = "-"
+        if self.dataframe is not None and not self.dataframe.empty:
+            prov_series = self.dataframe['RECEIVER_PROVINCE'].dropna()
+            prov_series = prov_series[prov_series != ""]
+            if not prov_series.empty:
+                top_prov = prov_series.mode().iloc[0]
+                
+        self.lbl_stat_files.configure(text=f"📂 ไฟล์ PDF: {file_count} ไฟล์")
+        self.lbl_stat_records.configure(text=f"👥 รายการผู้รับ: {rec_count} รายการ")
+        self.lbl_stat_prov.configure(text=f"📍 ส่งบ่อยสุด: {top_prov}")
+
+    def filter_treeview(self, event=None):
+        """Filters the Treeview preview list in real-time based on the search query."""
+        query = self.search_entry.get().strip().lower()
+        
+        # Clear current rows
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+            
+        if self.dataframe is None or self.dataframe.empty:
+            return
+            
+        for idx, row in self.dataframe.iterrows():
+            inv_no = str(row.get("INV_NO", "")).lower()
+            shipper = str(row.get("SHIPPER_NAME", "")).lower()
+            receiver = str(row.get("RECEIVER", "")).lower()
+            address = str(row.get("RECEIVER_ADDRESS", "")).lower()
+            zipcode = str(row.get("RECEIVER_ZIPCODE", "")).lower()
+            
+            if (not query) or (query in inv_no or query in shipper or query in receiver or query in address or query in zipcode):
+                values = [
+                    row.get("NO", idx+1),
+                    row.get("INV_NO", ""),
+                    row.get("SHIPPER_NAME", ""),
+                    row.get("RECEIVER", ""),
+                    row.get("RECEIVER_ADDRESS", ""),
+                    row.get("RECEIVER_ZIPCODE", "")
+                ]
+                self.tree.insert("", "end", values=values)
+
+    def clear_search(self, event=None):
+        """Clears the search entry content and resets view."""
+        self.search_entry.delete(0, tk.END)
+        self.filter_treeview()
+
+    def export_excel_shortcut(self):
+        """Shortcut triggered via Ctrl+S."""
+        if self.dataframe is not None and not self.dataframe.empty:
+            self.export_excel()
+
+    def on_escape_press(self, event=None):
+        """Clears search if active, otherwise clears the workspace."""
+        if self.focus_get() == self.search_entry:
+            self.clear_search()
+            self.focus_set() # Unfocus search entry
+        else:
+            self.clear_selection()
+
     # --- Command Event Handlers ---
     
     def select_files(self):
@@ -303,6 +416,9 @@ class DPostConverterGUI(ctk.CTk):
         self.btn_export.configure(state='disabled')
         self.lbl_export_status.configure(text="พร้อมเริ่มแปลงข้อมูล", text_color=("#475569", "#94a3b8"))
         
+        # Update dynamic stats panel
+        self.update_stats()
+        
         # Transition to step 2 (ready to convert)
         self.set_current_step(2)
 
@@ -313,8 +429,14 @@ class DPostConverterGUI(ctk.CTk):
         self.lbl_status.configure(text="ยังไม่ได้เลือกไฟล์", text_color="#94a3b8")
         self.btn_convert.configure(state='disabled')
         self.btn_export.configure(state='disabled')
-        self.lbl_export_status.configure(text="กรุณาแปลงข้อมูลก่อนบันทึก", text_color="#94a3b8")
+        self.lbl_export_status.configure(text="กรุณาแปลงข้อมูลก่อนบันทึก", text_color=("#475569", "#94a3b8"))
         self.progress.set(0)
+        
+        # Clear search box
+        self.search_entry.delete(0, tk.END)
+        
+        # Reset stats
+        self.update_stats()
         
         # Clear preview table
         for item in self.tree.get_children():
@@ -381,20 +503,15 @@ class DPostConverterGUI(ctk.CTk):
         self.btn_convert.configure(state='normal')
         self.btn_clear.configure(state='normal')
         
-        # Populate Treeview preview
-        for idx, row in self.dataframe.iterrows():
-            values = [
-                row.get("NO", idx+1),
-                row.get("INV_NO", ""),
-                row.get("SHIPPER_NAME", ""),
-                row.get("RECEIVER", ""),
-                row.get("RECEIVER_ADDRESS", ""),
-                row.get("RECEIVER_ZIPCODE", "")
-            ]
-            self.tree.insert("", "end", values=values)
+        # Refresh Treeview preview
+        self.filter_treeview()
             
         self.btn_export.configure(state='normal')
         self.lbl_export_status.configure(text=f"แปลงข้อมูลสำเร็จ ค้นพบทั้งหมด {len(self.dataframe)} รายการ พร้อมนำออกไฟล์", text_color="#16a34a")
+        
+        # Update dynamic stats panel
+        self.update_stats()
+        
         messagebox.showinfo("เสร็จสิ้น", f"แปลงข้อมูลสำเร็จทั้งหมด {len(self.dataframe)} รายการ")
         
         # Transition to step 3 (ready to export)
@@ -408,6 +525,10 @@ class DPostConverterGUI(ctk.CTk):
         
         self.btn_export.configure(state='disabled')
         self.lbl_export_status.configure(text="การแปลงข้อมูลล้มเหลว", text_color="#dc2626")
+        
+        # Reset stats
+        self.update_stats()
+        
         messagebox.showerror("เกิดข้อผิดพลาด", f"ไม่สามารถแปลงข้อมูลได้:\n{error_msg}")
 
     def export_excel(self):
