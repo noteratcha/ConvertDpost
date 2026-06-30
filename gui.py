@@ -4,53 +4,24 @@ import glob
 import threading
 from datetime import datetime
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
-from tkinter.scrolledtext import ScrolledText
+from tkinter import filedialog, messagebox, ttk
+import customtkinter as ctk
 import pandas as pd
 
 # Import conversion functions and version from convert_dpost
 try:
     from convert_dpost import process_pdf, records_to_dataframe, __version__
 except ImportError:
-    __version__ = "2026.0630.1636"
+    __version__ = "2026.0630.1641"
     def process_pdf(path): return []
     def records_to_dataframe(records): return pd.DataFrame()
 
-# Colors for modern UI
-COLOR_PRIMARY = "#1e293b"      # Slate 800 (Header)
-COLOR_SECONDARY = "#0f766e"    # Teal 700 (Action buttons)
-COLOR_ACCENT = "#0284c7"       # Sky 600 (Selection buttons)
-COLOR_BG = "#f1f5f9"           # Slate 100 (Window background)
-COLOR_CARD = "#ffffff"         # White (Frames background)
-COLOR_TEXT = "#0f172a"         # Slate 900 (Main text)
-COLOR_TEXT_MUTED = "#64748b"   # Slate 500 (Subtext)
-COLOR_SUCCESS = "#16a34a"      # Green 600 (Export button)
-COLOR_DANGER = "#dc2626"       # Red 600 (Clear button)
-
-class HoverButton(tk.Button):
-    """Custom button with hover effect and modern flat style."""
-    def __init__(self, master, active_bg=None, **kw):
-        # Default flat button configuration
-        kw.setdefault("relief", "flat")
-        kw.setdefault("bd", 0)
-        kw.setdefault("cursor", "hand2")
-        kw.setdefault("font", ("Segoe UI", 10, "bold"))
-        
-        super().__init__(master, **kw)
-        self.default_bg = self["background"]
-        self.active_bg = active_bg if active_bg else self.default_bg
-        
-        self.bind("<Enter>", self.on_enter)
-        self.bind("<Leave>", self.on_leave)
-
-    def on_enter(self, e):
-        self.config(background=self.active_bg)
-
-    def on_leave(self, e):
-        self.config(background=self.default_bg)
+# Set ctk options
+ctk.set_appearance_mode("dark")  # Modes: "System", "Dark", "Light"
+ctk.set_default_color_theme("blue")  # Themes: "blue", "green", "dark-blue"
 
 class StdoutRedirector:
-    """Redirects stdout to a tkinter ScrolledText widget."""
+    """Redirects stdout to a customtkinter CTkTextbox widget."""
     def __init__(self, text_widget):
         self.text_widget = text_widget
 
@@ -63,170 +34,138 @@ class StdoutRedirector:
     def flush(self):
         pass
 
-class DPostConverterGUI:
-    def __init__(self, root):
-        self.root = root
-        self.root.title(f"DPost PDF Converter v{__version__}")
-        self.root.geometry("1000x720")
-        self.root.minsize(900, 650)
-        self.root.configure(bg=COLOR_BG)
+class DPostConverterGUI(ctk.CTk):
+    def __init__(self):
+        super().__init__()
+        
+        self.title(f"DPost PDF Converter v{__version__}")
+        self.geometry("1100x760")
+        self.minsize(950, 700)
         
         self.selected_files = []
         self.parsed_records = []
         self.dataframe = None
 
-        # Setup Styles for ttk widgets (Treeview, Scrollbars)
-        self.setup_styles()
-        
         # Build UI layout
         self.create_layout()
         
-        # Redirect stdout
-        sys.stdout = StdoutRedirector(self.log_text)
-        
         # Set initial active step
         self.set_current_step(1)
-
-    def set_current_step(self, step):
-        """Highlights the active step label and dims inactive steps."""
-        for s_num, lbl in {1: self.lbl_step1, 2: self.lbl_step2, 3: self.lbl_step3}.items():
-            if s_num == step:
-                # Active style: Light blue capsule background, dark blue text
-                lbl.config(fg="#0369a1", bg="#e0f2fe")
-            else:
-                # Inactive style: Muted gray text, transparent/blend background
-                lbl.config(fg="#94a3b8", bg="#f8fafc")
-
-    def setup_styles(self):
-        style = ttk.Style()
-        style.theme_use('clam')
         
-        # Treeview styling
-        style.configure('Treeview', 
-                        background=COLOR_CARD, 
-                        foreground=COLOR_TEXT, 
-                        rowheight=26, 
-                        fieldbackground=COLOR_CARD, 
-                        font=('Segoe UI', 9))
-        style.map('Treeview', 
-                  background=[('selected', '#e2e8f0')], 
-                  foreground=[('selected', COLOR_TEXT)])
-        
-        style.configure('Treeview.Heading', 
-                        background='#e2e8f0', 
-                        foreground=COLOR_TEXT, 
-                        font=('Segoe UI', 9, 'bold'),
-                        relief='flat')
-        
-        # Progressbar styling
-        style.configure('TProgressbar', 
-                        troughcolor='#e2e8f0', 
-                        background=COLOR_SECONDARY, 
-                        thickness=8)
+        # Redirect stdout
+        sys.stdout = StdoutRedirector(self.log_text)
 
     def create_layout(self):
         # 1. Header Banner
-        header = tk.Frame(self.root, bg=COLOR_PRIMARY, height=75)
+        header = ctk.CTkFrame(self, corner_radius=0, fg_color="#1e293b", height=85)
         header.pack(fill='x', side='top')
         header.pack_propagate(False)
         
-        title_lbl = tk.Label(header, text="DPost Mailing Label PDF Converter", 
-                             font=("Segoe UI", 16, "bold"), fg="#ffffff", bg=COLOR_PRIMARY)
-        title_lbl.pack(anchor='w', padx=20, pady=(12, 0))
+        # Center container in header for nice padding
+        header_content = ctk.CTkFrame(header, fg_color="transparent")
+        header_content.pack(fill='both', expand=True, padx=25, pady=10)
         
-        version_lbl = tk.Label(header, text=f"เวอร์ชัน {__version__} | สำหรับสกัดข้อมูลใบนำส่งเพื่อนำเข้า DPost", 
-                               font=("Segoe UI", 9), fg="#94a3b8", bg=COLOR_PRIMARY)
-        version_lbl.pack(anchor='w', padx=20, pady=(0, 10))
+        title_lbl = ctk.CTkLabel(header_content, text="DPost Mailing Label PDF Converter", 
+                                 font=("Segoe UI", 18, "bold"), text_color="#f8fafc")
+        title_lbl.pack(anchor='w', side='left')
+        
+        # Theme toggle switch on the right side of header
+        self.switch_theme = ctk.CTkSwitch(header_content, text="โหมดมืด (Dark Mode)", 
+                                           font=("Segoe UI", 10, "bold"), text_color="#cbd5e1",
+                                           command=self.toggle_theme)
+        self.switch_theme.select() # Default to dark mode selected
+        self.switch_theme.pack(anchor='e', side='right', padx=10)
+        
+        version_lbl = ctk.CTkLabel(header_content, text=f"เวอร์ชัน {__version__} | สำหรับสกัดข้อมูลใบนำส่งเพื่อนำเข้า DPost", 
+                                   font=("Segoe UI", 11), text_color="#94a3b8")
+        version_lbl.pack(anchor='w', side='top', pady=(4, 0))
 
-        # Sub-header Instruction Bar (Step-by-step guidance)
-        instruction_bar = tk.Frame(self.root, bg="#f8fafc", highlightthickness=1, highlightbackground="#cbd5e1")
-        instruction_bar.pack(fill='x', padx=15, pady=(15, 0))
+        # 2. Sub-header Instruction Bar (Step-by-step guidance)
+        instruction_bar = ctk.CTkFrame(self, corner_radius=8, border_width=1, border_color="#334155")
+        instruction_bar.pack(fill='x', padx=20, pady=(15, 0))
         
-        # Center container frame to keep steps aligned horizontally
-        center_frame = tk.Frame(instruction_bar, bg="#f8fafc")
-        center_frame.pack(anchor='center', pady=6)
+        center_frame = ctk.CTkFrame(instruction_bar, fg_color="transparent")
+        center_frame.pack(anchor='center', pady=8)
         
-        icon_lbl = tk.Label(center_frame, text="💡 ขั้นตอนการทำงาน:", font=("Segoe UI", 10, "bold"), fg="#0f766e", bg="#f8fafc")
+        icon_lbl = ctk.CTkLabel(center_frame, text="💡 ขั้นตอนการทำงาน:", font=("Segoe UI", 11, "bold"), text_color="#38bdf8")
         icon_lbl.pack(side='left', padx=(0, 10))
         
-        self.lbl_step1 = tk.Label(center_frame, text=" [1] เลือกไฟล์ PDF (หรือเลือกโฟลเดอร์) ", font=("Segoe UI", 10, "bold"), bg="#f8fafc", padx=6, pady=2)
+        self.lbl_step1 = ctk.CTkLabel(center_frame, text=" [1] เลือกไฟล์ PDF (หรือโฟลเดอร์) ", font=("Segoe UI", 11, "bold"), text_color="#94a3b8", padx=8, pady=3)
         self.lbl_step1.pack(side='left')
         
-        arrow1 = tk.Label(center_frame, text=" ➔ ", font=("Segoe UI", 10), fg="#94a3b8", bg="#f8fafc")
+        arrow1 = ctk.CTkLabel(center_frame, text=" ➔ ", font=("Segoe UI", 11), text_color="#64748b")
         arrow1.pack(side='left')
         
-        self.lbl_step2 = tk.Label(center_frame, text=" [2] เริ่มแปลงข้อมูล (ขวาบน) ", font=("Segoe UI", 10, "bold"), bg="#f8fafc", padx=6, pady=2)
+        self.lbl_step2 = ctk.CTkLabel(center_frame, text=" [2] เริ่มแปลงข้อมูล (ขวาบน) ", font=("Segoe UI", 11, "bold"), text_color="#94a3b8", padx=8, pady=3)
         self.lbl_step2.pack(side='left')
         
-        arrow2 = tk.Label(center_frame, text=" ➔ ", font=("Segoe UI", 10), fg="#94a3b8", bg="#f8fafc")
+        arrow2 = ctk.CTkLabel(center_frame, text=" ➔ ", font=("Segoe UI", 11), text_color="#64748b")
         arrow2.pack(side='left')
         
-        self.lbl_step3 = tk.Label(center_frame, text=" [3] บันทึกไฟล์ Excel... (ขวาล่าง) ", font=("Segoe UI", 10, "bold"), bg="#f8fafc", padx=6, pady=2)
+        self.lbl_step3 = ctk.CTkLabel(center_frame, text=" [3] บันทึกไฟล์ Excel... (ขวาล่าง) ", font=("Segoe UI", 11, "bold"), text_color="#94a3b8", padx=8, pady=3)
         self.lbl_step3.pack(side='left')
 
-        # Main Scrollable Container
-        container = tk.Frame(self.root, bg=COLOR_BG)
-        container.pack(fill='both', expand=True, padx=15, pady=(10, 15))
+        # 3. Main Container
+        container = ctk.CTkFrame(self, fg_color="transparent")
+        container.pack(fill='both', expand=True, padx=20, pady=15)
         
-        # Grid Configuration for main container
+        # Grid config
         container.columnconfigure(0, weight=1)
         container.rowconfigure(0, weight=0) # File Selection Card
         container.rowconfigure(1, weight=3) # Preview Table Card
         container.rowconfigure(2, weight=2) # Log & Export Card
 
-        # --- Card 1: File Selection & Conversion Controls ---
-        card_files = tk.Frame(container, bg=COLOR_CARD, bd=1, relief='flat')
+        # --- Card 1: File Selection & Controls ---
+        card_files = ctk.CTkFrame(container, corner_radius=10, border_width=1, border_color="#334155")
         card_files.grid(row=0, column=0, sticky='nsew', pady=(0, 10))
         
-        # Layout inside Card 1
-        tk.Label(card_files, text="1. เลือกแหล่งข้อมูลเอกสาร PDF", font=("Segoe UI", 11, "bold"), 
-                 bg=COLOR_CARD, fg=COLOR_PRIMARY).pack(anchor='w', padx=15, pady=(10, 5))
+        ctk.CTkLabel(card_files, text="1. เลือกแหล่งข้อมูลเอกสาร PDF", font=("Segoe UI", 12, "bold"), 
+                     text_color="#f8fafc").pack(anchor='w', padx=20, pady=(12, 5))
         
-        btn_frame = tk.Frame(card_files, bg=COLOR_CARD)
-        btn_frame.pack(fill='x', padx=15, pady=(5, 10))
+        btn_frame = ctk.CTkFrame(card_files, fg_color="transparent")
+        btn_frame.pack(fill='x', padx=20, pady=(5, 10))
         
-        self.btn_select_files = HoverButton(btn_frame, text=" [1] เลือกไฟล์ PDF... ", bg=COLOR_ACCENT, fg="#ffffff", 
-                                            active_bg="#0284c7", command=self.select_files, height=1, width=20)
+        self.btn_select_files = ctk.CTkButton(btn_frame, text=" [1] เลือกไฟล์ PDF... ", fg_color="#0284c7", hover_color="#0369a1",
+                                              font=("Segoe UI", 11, "bold"), command=self.select_files, width=170)
         self.btn_select_files.pack(side='left', padx=(0, 10))
         
-        self.btn_select_dir = HoverButton(btn_frame, text=" [1] เลือกโฟลเดอร์... ", bg=COLOR_ACCENT, fg="#ffffff", 
-                                          active_bg="#0284c7", command=self.select_directory, height=1, width=20)
+        self.btn_select_dir = ctk.CTkButton(btn_frame, text=" [1] เลือกโฟลเดอร์... ", fg_color="#0284c7", hover_color="#0369a1",
+                                            font=("Segoe UI", 11, "bold"), command=self.select_directory, width=170)
         self.btn_select_dir.pack(side='left', padx=(0, 10))
         
-        self.btn_clear = HoverButton(btn_frame, text="ล้างข้อมูล", bg="#e2e8f0", fg=COLOR_TEXT, 
-                                     active_bg="#cbd5e1", command=self.clear_selection, height=1, width=10)
+        self.btn_clear = ctk.CTkButton(btn_frame, text="ล้างข้อมูล", fg_color="#475569", hover_color="#334155",
+                                       font=("Segoe UI", 11, "bold"), command=self.clear_selection, width=100)
         self.btn_clear.pack(side='left', padx=(0, 20))
         
-        self.lbl_status = tk.Label(btn_frame, text="ยังไม่ได้เลือกไฟล์", font=("Segoe UI", 10, "italic"), 
-                                   bg=COLOR_CARD, fg=COLOR_TEXT_MUTED)
+        self.lbl_status = ctk.CTkLabel(btn_frame, text="ยังไม่ได้เลือกไฟล์", font=("Segoe UI", 11, "italic"), text_color="#94a3b8")
         self.lbl_status.pack(side='left', fill='x', expand=True, anchor='w')
         
-        self.btn_convert = HoverButton(btn_frame, text=" [2] เริ่มแปลงข้อมูล ", bg=COLOR_SECONDARY, fg="#ffffff", 
-                                       active_bg="#0d9488", command=self.start_conversion, state='disabled', height=1, width=20)
-        self.btn_convert.config(disabledforeground="#94a3b8")
+        self.btn_convert = ctk.CTkButton(btn_frame, text=" [2] เริ่มแปลงข้อมูล ", fg_color="#0f766e", hover_color="#0d9488",
+                                         font=("Segoe UI", 11, "bold"), command=self.start_conversion, state='disabled', width=170)
         self.btn_convert.pack(side='right')
 
         # Progress bar
-        self.progress = ttk.Progressbar(card_files, style='TProgressbar', mode='determinate')
-        self.progress.pack(fill='x', padx=15, pady=(0, 5))
+        self.progress = ctk.CTkProgressBar(card_files, progress_color="#0f766e", height=8)
+        self.progress.pack(fill='x', padx=20, pady=(0, 12))
+        self.progress.set(0)
 
         # --- Card 2: Preview Table ---
-        card_preview = tk.Frame(container, bg=COLOR_CARD, bd=1, relief='flat')
+        card_preview = ctk.CTkFrame(container, corner_radius=10, border_width=1, border_color="#334155")
         card_preview.grid(row=1, column=0, sticky='nsew', pady=(0, 10))
         
-        tk.Label(card_preview, text="2. ตารางตัวอย่างข้อมูลหลังสกัด (Preview)", font=("Segoe UI", 11, "bold"), 
-                 bg=COLOR_CARD, fg=COLOR_PRIMARY).pack(anchor='w', padx=15, pady=(10, 5))
+        ctk.CTkLabel(card_preview, text="2. ตารางตัวอย่างข้อมูลหลังสกัด (Preview)", font=("Segoe UI", 12, "bold"), 
+                     text_color="#f8fafc").pack(anchor='w', padx=20, pady=(12, 5))
         
-        table_frame = tk.Frame(card_preview, bg=COLOR_CARD)
-        table_frame.pack(fill='both', expand=True, padx=15, pady=(0, 10))
+        table_frame = ctk.CTkFrame(card_preview, fg_color="transparent")
+        table_frame.pack(fill='both', expand=True, padx=20, pady=(0, 15))
         
         # Scrollbars for Treeview
         vsb = ttk.Scrollbar(table_frame, orient="vertical")
         hsb = ttk.Scrollbar(table_frame, orient="horizontal")
         
-        # Columns
+        # Setup Styles for treeview
         self.preview_cols = ["NO", "INV_NO", "SHIPPER_NAME", "RECEIVER", "RECEIVER_ADDRESS", "RECEIVER_ZIPCODE"]
-        col_widths = {"NO": 40, "INV_NO": 120, "SHIPPER_NAME": 200, "RECEIVER": 150, "RECEIVER_ADDRESS": 300, "RECEIVER_ZIPCODE": 90}
+        col_widths = {"NO": 50, "INV_NO": 130, "SHIPPER_NAME": 200, "RECEIVER": 160, "RECEIVER_ADDRESS": 320, "RECEIVER_ZIPCODE": 100}
         col_titles = {"NO": "ลำดับ", "INV_NO": "เลขที่อ้างอิง", "SHIPPER_NAME": "ผู้ส่ง", "RECEIVER": "ผู้รับ", "RECEIVER_ADDRESS": "ที่อยู่ผู้รับ", "RECEIVER_ZIPCODE": "รหัสไปรษณีย์"}
         
         self.tree = ttk.Treeview(table_frame, columns=self.preview_cols, show="headings", 
@@ -237,48 +176,103 @@ class DPostConverterGUI:
         
         for col in self.preview_cols:
             self.tree.heading(col, text=col_titles[col], anchor='w')
-            self.tree.column(col, width=col_widths[col], minwidth=40, anchor='w')
+            self.tree.column(col, width=col_widths[col], minwidth=50, anchor='w')
             
         vsb.pack(side='right', fill='y')
         hsb.pack(side='bottom', fill='x')
         self.tree.pack(side='left', fill='both', expand=True)
 
+        # Style Treeview initially for dark mode
+        self.style_treeview("dark")
+
         # --- Card 3: Log console & Save Action ---
-        card_footer = tk.Frame(container, bg=COLOR_BG)
+        card_footer = ctk.CTkFrame(container, fg_color="transparent")
         card_footer.grid(row=2, column=0, sticky='nsew')
         card_footer.columnconfigure(0, weight=2) # Log console
         card_footer.columnconfigure(1, weight=1) # Export Panel
         card_footer.rowconfigure(0, weight=1)
         
         # Card 3a: Logs
-        log_frame = tk.Frame(card_footer, bg=COLOR_CARD, bd=1, relief='flat')
+        log_frame = ctk.CTkFrame(card_footer, corner_radius=10, border_width=1, border_color="#334155")
         log_frame.grid(row=0, column=0, sticky='nsew', padx=(0, 10))
         
-        tk.Label(log_frame, text="3. รายละเอียดการทำงาน (Log)", font=("Segoe UI", 11, "bold"), 
-                 bg=COLOR_CARD, fg=COLOR_PRIMARY).pack(anchor='w', padx=15, pady=(10, 5))
+        ctk.CTkLabel(log_frame, text="3. รายละเอียดการทำงาน (Log)", font=("Segoe UI", 12, "bold"), 
+                     text_color="#f8fafc").pack(anchor='w', padx=20, pady=(12, 5))
         
-        self.log_text = ScrolledText(log_frame, state='disabled', height=6, bg="#1e293b", fg="#f8fafc", 
-                                     insertbackground="white", font=("Courier New", 9))
-        self.log_text.pack(fill='both', expand=True, padx=15, pady=(0, 10))
+        self.log_text = ctk.CTkTextbox(log_frame, state='disabled', fg_color="#0f172a", text_color="#38bdf8", 
+                                       font=("Consolas", 11), corner_radius=6)
+        self.log_text.pack(fill='both', expand=True, padx=20, pady=(0, 15))
         
         # Card 3b: Export panel
-        export_frame = tk.Frame(card_footer, bg=COLOR_CARD, bd=1, relief='flat')
+        export_frame = ctk.CTkFrame(card_footer, corner_radius=10, border_width=1, border_color="#334155")
         export_frame.grid(row=0, column=1, sticky='nsew')
         
-        tk.Label(export_frame, text="4. นำออกไฟล์ Excel", font=("Segoe UI", 11, "bold"), 
-                 bg=COLOR_CARD, fg=COLOR_PRIMARY).pack(anchor='w', padx=15, pady=(10, 5))
+        ctk.CTkLabel(export_frame, text="4. นำออกไฟล์ Excel", font=("Segoe UI", 12, "bold"), 
+                     text_color="#f8fafc").pack(anchor='w', padx=20, pady=(12, 5))
         
-        export_inner = tk.Frame(export_frame, bg=COLOR_CARD)
-        export_inner.pack(fill='both', expand=True, padx=15, pady=10)
+        export_inner = ctk.CTkFrame(export_frame, fg_color="transparent")
+        export_inner.pack(fill='both', expand=True, padx=20, pady=10)
         
-        self.btn_export = HoverButton(export_inner, text=" [3] บันทึกไฟล์ Excel... ", bg=COLOR_SUCCESS, fg="#ffffff", 
-                                      active_bg="#15803d", command=self.export_excel, state='disabled', height=2)
-        self.btn_export.config(disabledforeground="#94a3b8")
+        self.btn_export = ctk.CTkButton(export_inner, text=" [3] บันทึกไฟล์ Excel... ", fg_color="#16a34a", hover_color="#15803d",
+                                        font=("Segoe UI", 12, "bold"), command=self.export_excel, state='disabled', height=45)
         self.btn_export.pack(fill='x', pady=(15, 10))
         
-        self.lbl_export_status = tk.Label(export_inner, text="กรุณาแปลงข้อมูลก่อนบันทึก", 
-                                          font=("Segoe UI", 9, "italic"), bg=COLOR_CARD, fg=COLOR_TEXT_MUTED, wraplength=220)
+        self.lbl_export_status = ctk.CTkLabel(export_inner, text="กรุณาแปลงข้อมูลก่อนบันทึก", 
+                                              font=("Segoe UI", 11, "italic"), text_color="#94a3b8")
         self.lbl_export_status.pack(fill='x', side='bottom', pady=10)
+
+    def style_treeview(self, mode):
+        """Dynamic styling for the standard ttk.Treeview depending on the active theme."""
+        style = ttk.Style()
+        style.theme_use('clam')
+        
+        if mode == "dark":
+            bg = "#1e293b"          # Dark slate
+            fg = "#f8fafc"          # Light text
+            headings_bg = "#334155" # Slate 700
+            selected_bg = "#475569" # Slate 600
+        else:
+            bg = "#ffffff"          # White
+            fg = "#0f172a"          # Dark slate text
+            headings_bg = "#cbd5e1" # Slate 200
+            selected_bg = "#94a3b8" # Slate 400
+            
+        style.configure('Treeview', 
+                        background=bg, 
+                        foreground=fg, 
+                        rowheight=26, 
+                        fieldbackground=bg, 
+                        font=('Segoe UI', 9))
+        style.map('Treeview', 
+                  background=[('selected', selected_bg)], 
+                  foreground=[('selected', '#ffffff')])
+        
+        style.configure('Treeview.Heading', 
+                        background=headings_bg, 
+                        foreground=fg, 
+                        font=('Segoe UI', 9, 'bold'),
+                        relief='flat')
+
+    def set_current_step(self, step):
+        """Highlights the active step label and dims inactive steps."""
+        for s_num, lbl in {1: self.lbl_step1, 2: self.lbl_step2, 3: self.lbl_step3}.items():
+            if s_num == step:
+                # Active style: Light blue capsule background, dark text
+                lbl.configure(text_color="#0f172a", fg_color="#38bdf8", corner_radius=6)
+            else:
+                # Inactive style: Muted gray text, transparent background
+                lbl.configure(text_color="#94a3b8", fg_color="transparent")
+
+    def toggle_theme(self):
+        """Toggles between Dark and Light appearance modes."""
+        if self.switch_theme.get() == 1:
+            ctk.set_appearance_mode("dark")
+            self.style_treeview("dark")
+            self.switch_theme.configure(text="โหมดมืด (Dark Mode)")
+        else:
+            ctk.set_appearance_mode("light")
+            self.style_treeview("light")
+            self.switch_theme.configure(text="โหมดสว่าง (Light Mode)")
 
     # --- Command Event Handlers ---
     
@@ -294,7 +288,6 @@ class DPostConverterGUI:
     def select_directory(self):
         directory = filedialog.askdirectory(title="เลือกโฟลเดอร์ที่เก็บไฟล์ PDF")
         if directory:
-            # Find all PDFs in the selected directory
             files = glob.glob(os.path.join(directory, "*.pdf"))
             if files:
                 self.selected_files = files
@@ -306,14 +299,14 @@ class DPostConverterGUI:
         count = len(self.selected_files)
         if count == 1:
             name = os.path.basename(self.selected_files[0])
-            self.lbl_status.config(text=f"เลือกไฟล์: {name}", fg=COLOR_TEXT)
+            self.lbl_status.configure(text=f"เลือกไฟล์: {name}", text_color="#38bdf8")
         else:
-            self.lbl_status.config(text=f"เลือกไฟล์ทั้งหมด {count} ไฟล์", fg=COLOR_TEXT)
+            self.lbl_status.configure(text=f"เลือกไฟล์ทั้งหมด {count} ไฟล์", text_color="#38bdf8")
         
-        self.btn_convert.config(state='normal')
-        self.progress['value'] = 0
-        self.btn_export.config(state='disabled')
-        self.lbl_export_status.config(text="พร้อมเริ่มแปลงข้อมูล", fg=COLOR_TEXT_MUTED)
+        self.btn_convert.configure(state='normal')
+        self.progress.set(0)
+        self.btn_export.configure(state='disabled')
+        self.lbl_export_status.configure(text="พร้อมเริ่มแปลงข้อมูล", text_color="#94a3b8")
         
         # Transition to step 2 (ready to convert)
         self.set_current_step(2)
@@ -322,11 +315,11 @@ class DPostConverterGUI:
         self.selected_files = []
         self.parsed_records = []
         self.dataframe = None
-        self.lbl_status.config(text="ยังไม่ได้เลือกไฟล์", fg=COLOR_TEXT_MUTED)
-        self.btn_convert.config(state='disabled')
-        self.btn_export.config(state='disabled')
-        self.lbl_export_status.config(text="กรุณาแปลงข้อมูลก่อนบันทึก", fg=COLOR_TEXT_MUTED)
-        self.progress['value'] = 0
+        self.lbl_status.configure(text="ยังไม่ได้เลือกไฟล์", text_color="#94a3b8")
+        self.btn_convert.configure(state='disabled')
+        self.btn_export.configure(state='disabled')
+        self.lbl_export_status.configure(text="กรุณาแปลงข้อมูลก่อนบันทึก", text_color="#94a3b8")
+        self.progress.set(0)
         
         # Clear preview table
         for item in self.tree.get_children():
@@ -342,12 +335,12 @@ class DPostConverterGUI:
 
     def start_conversion(self):
         # Disable buttons during work
-        self.btn_select_files.config(state='disabled')
-        self.btn_select_dir.config(state='disabled')
-        self.btn_convert.config(state='disabled')
-        self.btn_clear.config(state='disabled')
+        self.btn_select_files.configure(state='disabled')
+        self.btn_select_dir.configure(state='disabled')
+        self.btn_convert.configure(state='disabled')
+        self.btn_clear.configure(state='disabled')
         
-        self.progress['value'] = 0
+        self.progress.set(0)
         
         # Clear preview table
         for item in self.tree.get_children():
@@ -365,35 +358,33 @@ class DPostConverterGUI:
             
             total_files = len(self.selected_files)
             for index, file_path in enumerate(self.selected_files, 1):
-                # Process individual PDF
                 records = process_pdf(file_path)
                 self.parsed_records.extend(records)
                 
-                # Update progress in GUI thread safely
-                percent = int((index / total_files) * 100)
-                self.root.after(0, self.update_progress, percent)
+                percent = float(index / total_files)
+                self.after(0, self.update_progress, percent)
                 
             print(f"สกัดข้อมูลเสร็จสิ้น ค้นพบข้อมูลผู้รับทั้งหมด {len(self.parsed_records)} รายการ\n")
             
             if self.parsed_records:
                 self.dataframe = records_to_dataframe(self.parsed_records)
-                self.root.after(0, self.conversion_success)
+                self.after(0, self.conversion_success)
             else:
-                self.root.after(0, self.conversion_failed, "ไม่พบข้อมูลใบนำส่งที่ถูกต้องในไฟล์ PDF ที่เลือก")
+                self.after(0, self.conversion_failed, "ไม่พบข้อมูลใบนำส่งที่ถูกต้องในไฟล์ PDF ที่เลือก")
                 
         except Exception as e:
             print(f"เกิดข้อผิดพลาด: {str(e)}\n")
-            self.root.after(0, self.conversion_failed, str(e))
+            self.after(0, self.conversion_failed, str(e))
 
     def update_progress(self, val):
-        self.progress['value'] = val
+        self.progress.set(val)
 
     def conversion_success(self):
         # Re-enable buttons
-        self.btn_select_files.config(state='normal')
-        self.btn_select_dir.config(state='normal')
-        self.btn_convert.config(state='normal')
-        self.btn_clear.config(state='normal')
+        self.btn_select_files.configure(state='normal')
+        self.btn_select_dir.configure(state='normal')
+        self.btn_convert.configure(state='normal')
+        self.btn_clear.configure(state='normal')
         
         # Populate Treeview preview
         for idx, row in self.dataframe.iterrows():
@@ -407,21 +398,21 @@ class DPostConverterGUI:
             ]
             self.tree.insert("", "end", values=values)
             
-        self.btn_export.config(state='normal')
-        self.lbl_export_status.config(text=f"แปลงข้อมูลสำเร็จ ค้นพบทั้งหมด {len(self.dataframe)} รายการ พร้อมนำออกไฟล์", fg=COLOR_SECONDARY)
+        self.btn_export.configure(state='normal')
+        self.lbl_export_status.configure(text=f"แปลงข้อมูลสำเร็จ ค้นพบทั้งหมด {len(self.dataframe)} รายการ พร้อมนำออกไฟล์", text_color="#16a34a")
         messagebox.showinfo("เสร็จสิ้น", f"แปลงข้อมูลสำเร็จทั้งหมด {len(self.dataframe)} รายการ")
         
         # Transition to step 3 (ready to export)
         self.set_current_step(3)
 
     def conversion_failed(self, error_msg):
-        self.btn_select_files.config(state='normal')
-        self.btn_select_dir.config(state='normal')
-        self.btn_convert.config(state='normal')
-        self.btn_clear.config(state='normal')
+        self.btn_select_files.configure(state='normal')
+        self.btn_select_dir.configure(state='normal')
+        self.btn_convert.configure(state='normal')
+        self.btn_clear.configure(state='normal')
         
-        self.btn_export.config(state='disabled')
-        self.lbl_export_status.config(text="การแปลงข้อมูลล้มเหลว", fg=COLOR_DANGER)
+        self.btn_export.configure(state='disabled')
+        self.lbl_export_status.configure(text="การแปลงข้อมูลล้มเหลว", text_color="#dc2626")
         messagebox.showerror("เกิดข้อผิดพลาด", f"ไม่สามารถแปลงข้อมูลได้:\n{error_msg}")
 
     def export_excel(self):
@@ -429,7 +420,6 @@ class DPostConverterGUI:
             messagebox.showwarning("ไม่มีข้อมูล", "ไม่มีข้อมูลสำหรับส่งออก")
             return
             
-        # Default filename with datetime suffix
         suffix = datetime.now().strftime("%Y%m%d%H%M")
         default_name = f"dpost_import_{suffix}.xlsx"
         
@@ -442,7 +432,6 @@ class DPostConverterGUI:
         
         if output_path:
             try:
-                # Save with sheet_name="New Order Data"
                 self.dataframe.to_excel(output_path, sheet_name="New Order Data", index=False)
                 print(f"บันทึกไฟล์ Excel สำเร็จ: {os.path.basename(output_path)}")
                 messagebox.showinfo("บันทึกสำเร็จ", f"บันทึกไฟล์เรียบร้อยแล้วที่:\n{output_path}")
@@ -452,18 +441,8 @@ class DPostConverterGUI:
                 messagebox.showerror("เกิดข้อผิดพลาด", f"ไม่สามารถบันทึกไฟล์ได้:\n{str(e)}")
 
 def main():
-    root = tk.Tk()
-    
-    # Set Windows window icon if exists (fallback to default)
-    try:
-        # Avoid issues if run on non-windows
-        if os.name == 'nt':
-            root.iconbitmap(default=None)
-    except Exception:
-        pass
-        
-    app = DPostConverterGUI(root)
-    root.mainloop()
+    app = DPostConverterGUI()
+    app.mainloop()
 
 if __name__ == "__main__":
     main()
