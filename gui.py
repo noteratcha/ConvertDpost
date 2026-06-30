@@ -12,7 +12,7 @@ import pandas as pd
 try:
     from convert_dpost import process_pdf, records_to_dataframe, __version__
 except ImportError:
-    __version__ = "2026.0630.1653"
+    __version__ = "2026.0630.1657"
     def process_pdf(path): return []
     def records_to_dataframe(records): return pd.DataFrame()
 
@@ -54,7 +54,7 @@ class DPostConverterGUI(ctk.CTk):
     def __init__(self):
         super().__init__()
         
-        self.title(f"DPost PDF Converter v{__version__}")
+        self.title(f"Convert PDF To Excel v{__version__}")
         self.geometry("1100x780")
         self.minsize(950, 720)
         
@@ -88,7 +88,7 @@ class DPostConverterGUI(ctk.CTk):
         header_content = ctk.CTkFrame(header, fg_color="transparent")
         header_content.pack(fill='both', expand=True, padx=25, pady=10)
         
-        title_lbl = ctk.CTkLabel(header_content, text="DPost Mailing Label PDF Converter", 
+        title_lbl = ctk.CTkLabel(header_content, text=f"Convert PDF To Excel v{__version__}", 
                                  font=("Segoe UI", 18, "bold"), text_color="#f8fafc")
         title_lbl.pack(anchor='w', side='left')
         
