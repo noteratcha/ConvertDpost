@@ -12,7 +12,7 @@ import pandas as pd
 try:
     from convert_dpost import process_pdf, records_to_dataframe, __version__
 except ImportError:
-    __version__ = "2026.0630.1453"
+    __version__ = "2026.0630.1554"
     def process_pdf(path): return []
     def records_to_dataframe(records): return pd.DataFrame()
 
@@ -186,9 +186,9 @@ class DPostConverterGUI:
         hsb = ttk.Scrollbar(table_frame, orient="horizontal")
         
         # Columns
-        self.preview_cols = ["NO", "REF NO", "SHIPPER NAME", "RECEIVER", "RECEIVER ADDRESS", "RECEIVER ZIPCODE"]
-        col_widths = {"NO": 40, "REF NO": 120, "SHIPPER NAME": 200, "RECEIVER": 150, "RECEIVER ADDRESS": 300, "RECEIVER ZIPCODE": 90}
-        col_titles = {"NO": "ลำดับ", "REF NO": "เลขที่อ้างอิง", "SHIPPER NAME": "ผู้ส่ง", "RECEIVER": "ผู้รับ", "RECEIVER ADDRESS": "ที่อยู่ผู้รับ", "RECEIVER ZIPCODE": "รหัสไปรษณีย์"}
+        self.preview_cols = ["NO", "INV_NO", "SHIPPER_NAME", "RECEIVER", "RECEIVER_ADDRESS", "RECEIVER_ZIPCODE"]
+        col_widths = {"NO": 40, "INV_NO": 120, "SHIPPER_NAME": 200, "RECEIVER": 150, "RECEIVER_ADDRESS": 300, "RECEIVER_ZIPCODE": 90}
+        col_titles = {"NO": "ลำดับ", "INV_NO": "เลขที่อ้างอิง", "SHIPPER_NAME": "ผู้ส่ง", "RECEIVER": "ผู้รับ", "RECEIVER_ADDRESS": "ที่อยู่ผู้รับ", "RECEIVER_ZIPCODE": "รหัสไปรษณีย์"}
         
         self.tree = ttk.Treeview(table_frame, columns=self.preview_cols, show="headings", 
                                  yscrollcommand=vsb.set, xscrollcommand=hsb.set)
@@ -354,11 +354,11 @@ class DPostConverterGUI:
         for idx, row in self.dataframe.iterrows():
             values = [
                 row.get("NO", idx+1),
-                row.get("REF NO", ""),
-                row.get("SHIPPER NAME", ""),
+                row.get("INV_NO", ""),
+                row.get("SHIPPER_NAME", ""),
                 row.get("RECEIVER", ""),
-                row.get("RECEIVER ADDRESS", ""),
-                row.get("RECEIVER ZIPCODE", "")
+                row.get("RECEIVER_ADDRESS", ""),
+                row.get("RECEIVER_ZIPCODE", "")
             ]
             self.tree.insert("", "end", values=values)
             

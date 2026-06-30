@@ -4,7 +4,7 @@ import glob
 import pandas as pd
 from pypdf import PdfReader
 
-__version__ = "2026.0630.1453"
+__version__ = "2026.0630.1554"
 
 # Mapping of Thai digits to Arabic digits
 THAI_TO_ARABIC = str.maketrans('๐๑๒๓๔๕๖๗๘๙', '0123456789')
@@ -348,32 +348,52 @@ def process_pdf(pdf_path):
 def records_to_dataframe(all_records):
     # Define exact columns matching the DPost template
     columns = [
-        'NO', 'COMP ORDER ID', 'REF NO', 'BARCODE NO', 'PRODUCT IN BOX',
-        'SHIPPER NAME', 'SHIPPER ADDRESS', 'SHIPPER AMPHUR', 'SHIPPER PROVINCE', 'SHIPPER ZIPCODE',
-        'SHIPPER TEL', 'SHIPPER EMAIL', 'RECEIVER', 'RECEIVER ADDRESS', 'RECEIVER AMPHUR',
-        'RECEIVER PROVINCE', 'RECEIVER ZIPCODE', 'RECEIVER TEL', 'RECEIVER EMAIL',
-        'WEIGHT', 'PRICE', 'DPOST', 'DPOST PRICE', 'COD DETAIL MIN', 'COD DETAIL MAX',
-        'COD DETAIL VOLUME', 'COD DETAIL COD', 'COD DETAIL VALUE', 'COD DETAIL QTY',
-        'AMUNT', 'TYPE OF PAYMENT', 'COMMENT'
+        'NO', 'COMP_ORDER_ID', 'INV_NO', 'BARCODE_NO', 'PRODUCT_IN_BOX', 
+        'SHIPPER_NAME', 'SHIPPER_ADDRESS', 'SHIPPER_AMPHUR', 'SHIPPER_PROVINCE', 'SHIPPER_ZIPCODE',
+        'SHIPPER_TEL', 'SHIPPER_EMAIL', 'RECEIVER', 'RECEIVER_ADDRESS', 'RECEIVER_AMPHUR',
+        'RECEIVER_PROVINCE', 'RECEIVER_ZIPCODE', 'RECEIVER_TEL', 'RECEIVER_EMAIL',
+        'WEIGHT', 'PRICE', 'INSURE', 'INSURE_PRICE', 'COD_DETAIL_NAME', 'COD_DETAIL_SIZE',
+        'COD_DETAIL_VOLUME', 'COD_DETAIL_QTY', 'COD_DETAIL_COLOR', 'COD_DETAIL_QTY_AMOUNT',
+        'PROVE_OF_PAYMENT', 'IS_CONSENT'
     ]
     
     rows = []
     for idx, rec in enumerate(all_records, 1):
         row_data = {col: "" for col in columns}
         row_data['NO'] = idx
-        row_data['REF NO'] = rec.get('REF NO', '')
-        row_data['SHIPPER NAME'] = rec.get('SHIPPER NAME', '')
-        row_data['SHIPPER ADDRESS'] = rec.get('SHIPPER ADDRESS', '')
-        row_data['SHIPPER AMPHUR'] = rec.get('SHIPPER AMPHUR', '')
-        row_data['SHIPPER PROVINCE'] = rec.get('SHIPPER PROVINCE', '')
-        row_data['SHIPPER ZIPCODE'] = rec.get('SHIPPER ZIPCODE', '')
-        row_data['SHIPPER TEL'] = rec.get('SHIPPER TEL', '')
+        row_data['COMP_ORDER_ID'] = ""
+        row_data['INV_NO'] = rec.get('REF NO', '')
+        row_data['BARCODE_NO'] = ""
+        row_data['PRODUCT_IN_BOX'] = ""
+        
+        row_data['SHIPPER_NAME'] = rec.get('SHIPPER NAME', '')
+        row_data['SHIPPER_ADDRESS'] = rec.get('SHIPPER ADDRESS', '')
+        row_data['SHIPPER_AMPHUR'] = rec.get('SHIPPER AMPHUR', '')
+        row_data['SHIPPER_PROVINCE'] = rec.get('SHIPPER PROVINCE', '')
+        row_data['SHIPPER_ZIPCODE'] = rec.get('SHIPPER ZIPCODE', '')
+        row_data['SHIPPER_TEL'] = rec.get('SHIPPER TEL', '')
+        row_data['SHIPPER_EMAIL'] = ""
         
         row_data['RECEIVER'] = rec.get('RECEIVER', '')
-        row_data['RECEIVER ADDRESS'] = rec.get('RECEIVER ADDRESS', '')
-        row_data['RECEIVER AMPHUR'] = rec.get('RECEIVER AMPHUR', '')
-        row_data['RECEIVER PROVINCE'] = rec.get('RECEIVER PROVINCE', '')
-        row_data['RECEIVER ZIPCODE'] = rec.get('RECEIVER ZIPCODE', '')
+        row_data['RECEIVER_ADDRESS'] = rec.get('RECEIVER ADDRESS', '')
+        row_data['RECEIVER_AMPHUR'] = rec.get('RECEIVER AMPHUR', '')
+        row_data['RECEIVER_PROVINCE'] = rec.get('RECEIVER PROVINCE', '')
+        row_data['RECEIVER_ZIPCODE'] = rec.get('RECEIVER ZIPCODE', '')
+        row_data['RECEIVER_TEL'] = ""
+        row_data['RECEIVER_EMAIL'] = ""
+        
+        row_data['WEIGHT'] = ""
+        row_data['PRICE'] = ""
+        row_data['INSURE'] = ""
+        row_data['INSURE_PRICE'] = ""
+        row_data['COD_DETAIL_NAME'] = ""
+        row_data['COD_DETAIL_SIZE'] = ""
+        row_data['COD_DETAIL_VOLUME'] = ""
+        row_data['COD_DETAIL_QTY'] = ""
+        row_data['COD_DETAIL_COLOR'] = ""
+        row_data['COD_DETAIL_QTY_AMOUNT'] = ""
+        row_data['PROVE_OF_PAYMENT'] = ""
+        row_data['IS_CONSENT'] = ""
         rows.append(row_data)
         
     return pd.DataFrame(rows, columns=columns)
