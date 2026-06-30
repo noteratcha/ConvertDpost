@@ -12,7 +12,7 @@ import pandas as pd
 try:
     from convert_dpost import process_pdf, records_to_dataframe, __version__
 except ImportError:
-    __version__ = "2026.0630.1754"
+    __version__ = "2026.0630.1801"
     def process_pdf(path): return []
     def records_to_dataframe(records): return pd.DataFrame()
 
@@ -291,9 +291,9 @@ class DPostConverterGUI(ctk.CTk):
         hsb = ttk.Scrollbar(table_frame, orient="horizontal")
         
         # Setup Styles for treeview
-        self.preview_cols = ["NO", "INV_NO", "SHIPPER_NAME", "RECEIVER", "RECEIVER_ADDRESS", "RECEIVER_ZIPCODE"]
-        col_widths = {"NO": 50, "INV_NO": 130, "SHIPPER_NAME": 200, "RECEIVER": 160, "RECEIVER_ADDRESS": 320, "RECEIVER_ZIPCODE": 100}
-        col_titles = {"NO": "ลำดับ", "INV_NO": "เลขที่อ้างอิง", "SHIPPER_NAME": "ผู้ส่ง", "RECEIVER": "ผู้รับ", "RECEIVER_ADDRESS": "ที่อยู่ผู้รับ", "RECEIVER_ZIPCODE": "รหัสไปรษณีย์"}
+        self.preview_cols = ["NO", "INV_NO", "RECEIVER", "RECEIVER_ADDRESS", "RECEIVER_ZIPCODE"]
+        col_widths = {"NO": 50, "INV_NO": 130, "RECEIVER": 180, "RECEIVER_ADDRESS": 450, "RECEIVER_ZIPCODE": 110}
+        col_titles = {"NO": "ลำดับ", "INV_NO": "เลขที่อ้างอิง", "RECEIVER": "ผู้รับ", "RECEIVER_ADDRESS": "ที่อยู่ผู้รับ (ที่อยู่ / อำเภอ / จังหวัด)", "RECEIVER_ZIPCODE": "รหัสไปรษณีย์"}
         
         self.tree = ttk.Treeview(table_frame, columns=self.preview_cols, show="headings", 
                                  yscrollcommand=vsb.set, xscrollcommand=hsb.set)
@@ -445,18 +445,24 @@ class DPostConverterGUI(ctk.CTk):
             
         for idx, row in self.dataframe.iterrows():
             inv_no = str(row.get("INV_NO", "")).lower()
-            shipper = str(row.get("SHIPPER_NAME", "")).lower()
             receiver = str(row.get("RECEIVER", "")).lower()
             address = str(row.get("RECEIVER_ADDRESS", "")).lower()
+            amphur = str(row.get("RECEIVER_AMPHUR", "")).lower()
+            province = str(row.get("RECEIVER_PROVINCE", "")).lower()
             zipcode = str(row.get("RECEIVER_ZIPCODE", "")).lower()
             
-            if (not query) or (query in inv_no or query in shipper or query in receiver or query in address or query in zipcode):
+            # Combine full address: address + amphur + province
+            parts = [str(row.get("RECEIVER_ADDRESS", "")),
+                     str(row.get("RECEIVER_AMPHUR", "")),
+                     str(row.get("RECEIVER_PROVINCE", ""))]
+            full_address = " ".join(p for p in parts if p.strip())
+            
+            if (not query) or (query in inv_no or query in receiver or query in address or query in amphur or query in province or query in zipcode):
                 values = [
                     row.get("NO", idx+1),
                     row.get("INV_NO", ""),
-                    row.get("SHIPPER_NAME", ""),
                     row.get("RECEIVER", ""),
-                    row.get("RECEIVER_ADDRESS", ""),
+                    full_address,
                     row.get("RECEIVER_ZIPCODE", "")
                 ]
                 self.tree.insert("", "end", values=values)
