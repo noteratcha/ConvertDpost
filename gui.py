@@ -12,7 +12,7 @@ import pandas as pd
 try:
     from convert_dpost import process_pdf, records_to_dataframe, __version__
 except ImportError:
-    __version__ = "2026.0630.1734"
+    __version__ = "2026.0630.1742"
     def process_pdf(path): return []
     def records_to_dataframe(records): return pd.DataFrame()
 
@@ -148,10 +148,6 @@ class DPostConverterGUI(ctk.CTk):
         self.btn_select_files = ctk.CTkButton(btn_frame, text=" 📄 เลือกไฟล์ PDF... ", fg_color="#0284c7", hover_color="#0369a1",
                                               font=("Segoe UI", 11, "bold"), command=self.select_files, width=170)
         self.btn_select_files.pack(side='left', padx=(0, 10))
-        
-        self.btn_select_dir = ctk.CTkButton(btn_frame, text=" 📁 เลือกโฟลเดอร์... ", fg_color="#0284c7", hover_color="#0369a1",
-                                            font=("Segoe UI", 11, "bold"), command=self.select_directory, width=170)
-        self.btn_select_dir.pack(side='left', padx=(0, 10))
         
         self.btn_append_files = ctk.CTkButton(btn_frame, text=" ➕ เพิ่มไฟล์ PDF... ", fg_color="#7c3aed", hover_color="#6d28d9",
                                               font=("Segoe UI", 11, "bold"), command=self.append_files, width=170, state='disabled')
