@@ -456,6 +456,7 @@ class DPostConverterGUI(ctk.CTk):
         self._append_mode = False
         self._prev_file_count = 0
         self.lbl_status.configure(text="ยังไม่ได้เลือกไฟล์", text_color="#94a3b8")
+        self.btn_select_files.configure(state='normal')  # Re-enable: data cleared
         self.btn_convert.configure(state='disabled')
         self.btn_append_files.configure(state='disabled')
         self.btn_export.configure(state='disabled')
@@ -606,8 +607,8 @@ class DPostConverterGUI(ctk.CTk):
         self.progress.set(val)
 
     def conversion_success(self, append_info=None):
-        # Re-enable buttons
-        self.btn_select_files.configure(state='normal')
+        # Re-enable action buttons but lock file selection to prevent data replacement
+        self.btn_select_files.configure(state='disabled')  # Lock: data already loaded
         self.btn_append_files.configure(state='normal')
         self.btn_convert.configure(state='normal')
         self.btn_clear.configure(state='normal')
@@ -640,7 +641,9 @@ class DPostConverterGUI(ctk.CTk):
         self.set_current_step(3)
 
     def conversion_failed(self, error_msg):
-        self.btn_select_files.configure(state='normal')
+        # Re-enable file selection only if there is no existing data
+        has_data = self.dataframe is not None and not self.dataframe.empty
+        self.btn_select_files.configure(state='disabled' if has_data else 'normal')
         self.btn_append_files.configure(state='normal')
         self.btn_convert.configure(state='normal')
         self.btn_clear.configure(state='normal')
