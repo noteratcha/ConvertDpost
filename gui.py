@@ -483,7 +483,6 @@ class DPostConverterGUI(ctk.CTk):
     def start_conversion(self):
         # Disable buttons during work
         self.btn_select_files.configure(state='disabled')
-        self.btn_select_dir.configure(state='disabled')
         self.btn_append_files.configure(state='disabled')
         self.btn_convert.configure(state='disabled')
         self.btn_clear.configure(state='disabled')
@@ -609,7 +608,6 @@ class DPostConverterGUI(ctk.CTk):
     def conversion_success(self, append_info=None):
         # Re-enable buttons
         self.btn_select_files.configure(state='normal')
-        self.btn_select_dir.configure(state='normal')
         self.btn_append_files.configure(state='normal')
         self.btn_convert.configure(state='normal')
         self.btn_clear.configure(state='normal')
@@ -643,7 +641,6 @@ class DPostConverterGUI(ctk.CTk):
 
     def conversion_failed(self, error_msg):
         self.btn_select_files.configure(state='normal')
-        self.btn_select_dir.configure(state='normal')
         self.btn_append_files.configure(state='normal')
         self.btn_convert.configure(state='normal')
         self.btn_clear.configure(state='normal')
