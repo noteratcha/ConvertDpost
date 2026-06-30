@@ -1,0 +1,22 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Operating System files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+
+# Data / Project-specific outputs (Ignore PDFs and generated Excels)
+*.pdf
+*.xlsx
+*.xls
+*.log
