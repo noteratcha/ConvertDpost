@@ -12,7 +12,7 @@ import pandas as pd
 try:
     from convert_dpost import process_pdf, records_to_dataframe, __version__
 except ImportError:
-    __version__ = "2026.0630.1742"
+    __version__ = "2026.0630.1754"
     def process_pdf(path): return []
     def records_to_dataframe(records): return pd.DataFrame()
 
@@ -49,6 +49,102 @@ class StdoutRedirector:
 
     def flush(self):
         pass
+
+class DuplicateConfirmDialog(ctk.CTkToplevel):
+    """Custom styled confirmation dialog for duplicate receiver detection."""
+    def __init__(self, parent, dup_rows):
+        super().__init__(parent)
+        self.result = False
+        self.title("⚠️ พบข้อมูลผู้รับซ้ำ")
+        self.geometry("540x420")
+        self.resizable(False, False)
+        self.grab_set()  # Modal
+        self.lift()
+        self.focus_force()
+        
+        # Center on parent
+        self.update_idletasks()
+        px = parent.winfo_x() + parent.winfo_width()//2 - 270
+        py = parent.winfo_y() + parent.winfo_height()//2 - 210
+        self.geometry(f"+{px}+{py}")
+        
+        # --- Header ---
+        header = ctk.CTkFrame(self, corner_radius=0, fg_color="#b45309", height=58)
+        header.pack(fill='x')
+        header.pack_propagate(False)
+        header_inner = ctk.CTkFrame(header, fg_color="transparent")
+        header_inner.pack(fill='both', expand=True, padx=20, pady=10)
+        ctk.CTkLabel(header_inner, text="⚠️ พบข้อมูลผู้รับซ้ำ",
+                     font=("Segoe UI", 15, "bold"), text_color="#fff7ed").pack(side='left')
+        ctk.CTkLabel(header_inner, text=f"{len(dup_rows)} รายการ",
+                     font=("Segoe UI", 12), text_color="#fed7aa").pack(side='right')
+        
+        # --- Body ---
+        body = ctk.CTkFrame(self, fg_color="transparent")
+        body.pack(fill='both', expand=True, padx=20, pady=15)
+        
+        ctk.CTkLabel(body,
+                     text=f"ค้นพบรายการผู้รับที่ซ้ำกับข้อมูลเดิม {len(dup_rows)} รายการ ดังนี้:",
+                     font=("Segoe UI", 11), text_color=("#0f172a", "#f8fafc"),
+                     justify="left", anchor="w").pack(anchor='w', pady=(0, 8))
+        
+        # Scrollable list of duplicate names
+        list_frame = ctk.CTkScrollableFrame(body, height=180,
+                                            fg_color=("#f1f5f9", "#1e293b"),
+                                            corner_radius=8)
+        list_frame.pack(fill='x')
+        
+        for i, row in enumerate(dup_rows[:20]):
+            row_bg = ("#e2e8f0", "#273548") if i % 2 == 0 else ("#f1f5f9", "#1e293b")
+            item = ctk.CTkFrame(list_frame, fg_color=row_bg, corner_radius=4, height=32)
+            item.pack(fill='x', pady=1)
+            item.pack_propagate(False)
+            ctk.CTkLabel(item, text=f"•  {row['RECEIVER']}",
+                         font=("Segoe UI", 10, "bold"),
+                         text_color=("#0f172a", "#f8fafc"),
+                         anchor="w").pack(side='left', padx=10)
+            addr_short = str(row['RECEIVER_ADDRESS'])[:50]
+            ctk.CTkLabel(item, text=addr_short,
+                         font=("Segoe UI", 9),
+                         text_color=("#64748b", "#94a3b8"),
+                         anchor="e").pack(side='right', padx=10)
+        
+        if len(dup_rows) > 20:
+            ctk.CTkLabel(list_frame, text=f"  ...และอีก {len(dup_rows)-20} รายการ",
+                         font=("Segoe UI", 9, "italic"),
+                         text_color=("#64748b", "#94a3b8")).pack(anchor='w', padx=10, pady=4)
+        
+        ctk.CTkLabel(body, text="ต้องการเพิ่มรายการที่ซ้ำเข้าไปด้วยหรือไม่?",
+                     font=("Segoe UI", 11, "bold"),
+                     text_color=("#0f172a", "#f8fafc")).pack(anchor='w', pady=(10, 0))
+        
+        # --- Buttons ---
+        btn_frame = ctk.CTkFrame(self, fg_color="transparent")
+        btn_frame.pack(fill='x', padx=20, pady=(0, 16))
+        
+        ctk.CTkButton(btn_frame, text=" ✔️ ใช่ — เพิ่มทั้งหมด ",
+                      fg_color="#d97706", hover_color="#b45309",
+                      font=("Segoe UI", 11, "bold"), height=36,
+                      command=self._on_yes).pack(side='right', padx=(8, 0))
+        
+        ctk.CTkButton(btn_frame, text=" ❌ ไม่ — เพิ่มเฉพาะรายการใหม่ ",
+                      fg_color=("#e2e8f0", "#334155"),
+                      hover_color=("#cbd5e1", "#475569"),
+                      text_color=("#0f172a", "#f8fafc"),
+                      font=("Segoe UI", 11, "bold"), height=36,
+                      command=self._on_no).pack(side='right')
+        
+        self.protocol("WM_DELETE_WINDOW", self._on_no)
+        self.wait_window()
+
+    def _on_yes(self):
+        self.result = True
+        self.destroy()
+
+    def _on_no(self):
+        self.result = False
+        self.destroy()
+
 
 class DPostConverterGUI(ctk.CTk):
     def __init__(self):
@@ -547,14 +643,8 @@ class DPostConverterGUI(ctk.CTk):
                         non_dup_rows.append(row)
                 
                 if dup_rows:
-                    dup_names = "\n".join([f"  • {r['RECEIVER']} — {r['RECEIVER_ADDRESS'][:40]}" for r in dup_rows[:10]])
-                    if len(dup_rows) > 10:
-                        dup_names += f"\n  ...และอีก {len(dup_rows)-10} รายการ"
-                    confirm = messagebox.askyesno(
-                        "⚠️ พบข้อมูลผู้รับซ้ำ",
-                        f"พบรายการผู้รับที่ซ้ำกับข้อมูลเดิม {len(dup_rows)} รายการ:\n\n{dup_names}\n\n"
-                        "ต้องการเพิ่มรายการที่ซ้ำเข้าไปด้วยหรือไม่?"
-                    )
+                    dlg = DuplicateConfirmDialog(self, dup_rows)
+                    confirm = dlg.result
                     if confirm:
                         rows_to_add = non_dup_rows + dup_rows
                     else:
