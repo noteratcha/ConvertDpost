@@ -12,7 +12,7 @@ import pandas as pd
 try:
     from convert_dpost import process_pdf, records_to_dataframe, __version__
 except ImportError:
-    __version__ = "2026.0630.1554"
+    __version__ = "2026.0630.1604"
     def process_pdf(path): return []
     def records_to_dataframe(records): return pd.DataFrame()
 
@@ -125,9 +125,20 @@ class DPostConverterGUI:
                                font=("Segoe UI", 9), fg="#94a3b8", bg=COLOR_PRIMARY)
         version_lbl.pack(anchor='w', padx=20, pady=(0, 10))
 
-        # Main Scrollable Container (just in case screen is too small)
+        # Sub-header Instruction Bar (Step-by-step guidance)
+        instruction_bar = tk.Frame(self.root, bg="#f8fafc", highlightthickness=1, highlightbackground="#cbd5e1")
+        instruction_bar.pack(fill='x', padx=15, pady=(15, 0))
+        
+        instruction_lbl = tk.Label(
+            instruction_bar, 
+            text="💡 ขั้นตอนการทำงาน:  [1] กด 'เลือกไฟล์ PDF...' (หรือเลือกโฟลเดอร์)  ➔  [2] กด 'เริ่มแปลงข้อมูล' (ขวาบน)  ➔  [3] กด 'บันทึกไฟล์ Excel...' (ขวาล่าง)", 
+            font=("Segoe UI", 10, "bold"), fg="#0f766e", bg="#f8fafc"
+        )
+        instruction_lbl.pack(fill='x', padx=10, pady=8)
+
+        # Main Scrollable Container
         container = tk.Frame(self.root, bg=COLOR_BG)
-        container.pack(fill='both', expand=True, padx=15, pady=15)
+        container.pack(fill='both', expand=True, padx=15, pady=(10, 15))
         
         # Grid Configuration for main container
         container.columnconfigure(0, weight=1)
@@ -146,12 +157,12 @@ class DPostConverterGUI:
         btn_frame = tk.Frame(card_files, bg=COLOR_CARD)
         btn_frame.pack(fill='x', padx=15, pady=(5, 10))
         
-        self.btn_select_files = HoverButton(btn_frame, text=" เลือกไฟล์ PDF... ", bg=COLOR_ACCENT, fg="#ffffff", 
-                                            active_bg="#0284c7", command=self.select_files, height=1, width=15)
+        self.btn_select_files = HoverButton(btn_frame, text=" [1] เลือกไฟล์ PDF... ", bg=COLOR_ACCENT, fg="#ffffff", 
+                                            active_bg="#0284c7", command=self.select_files, height=1, width=20)
         self.btn_select_files.pack(side='left', padx=(0, 10))
         
-        self.btn_select_dir = HoverButton(btn_frame, text=" เลือกโฟลเดอร์... ", bg=COLOR_ACCENT, fg="#ffffff", 
-                                          active_bg="#0284c7", command=self.select_directory, height=1, width=15)
+        self.btn_select_dir = HoverButton(btn_frame, text=" [1] เลือกโฟลเดอร์... ", bg=COLOR_ACCENT, fg="#ffffff", 
+                                          active_bg="#0284c7", command=self.select_directory, height=1, width=20)
         self.btn_select_dir.pack(side='left', padx=(0, 10))
         
         self.btn_clear = HoverButton(btn_frame, text="ล้างข้อมูล", bg="#e2e8f0", fg=COLOR_TEXT, 
@@ -162,8 +173,8 @@ class DPostConverterGUI:
                                    bg=COLOR_CARD, fg=COLOR_TEXT_MUTED)
         self.lbl_status.pack(side='left', fill='x', expand=True, anchor='w')
         
-        self.btn_convert = HoverButton(btn_frame, text=" เริ่มแปลงข้อมูล ", bg=COLOR_SECONDARY, fg="#ffffff", 
-                                       active_bg="#0d9488", command=self.start_conversion, state='disabled', height=1, width=15)
+        self.btn_convert = HoverButton(btn_frame, text=" [2] เริ่มแปลงข้อมูล ", bg=COLOR_SECONDARY, fg="#ffffff", 
+                                       active_bg="#0d9488", command=self.start_conversion, state='disabled', height=1, width=20)
         self.btn_convert.config(disabledforeground="#94a3b8")
         self.btn_convert.pack(side='right')
 
@@ -232,7 +243,7 @@ class DPostConverterGUI:
         export_inner = tk.Frame(export_frame, bg=COLOR_CARD)
         export_inner.pack(fill='both', expand=True, padx=15, pady=10)
         
-        self.btn_export = HoverButton(export_inner, text=" บันทึกไฟล์ Excel... ", bg=COLOR_SUCCESS, fg="#ffffff", 
+        self.btn_export = HoverButton(export_inner, text=" [3] บันทึกไฟล์ Excel... ", bg=COLOR_SUCCESS, fg="#ffffff", 
                                       active_bg="#15803d", command=self.export_excel, state='disabled', height=2)
         self.btn_export.config(disabledforeground="#94a3b8")
         self.btn_export.pack(fill='x', pady=(15, 10))
